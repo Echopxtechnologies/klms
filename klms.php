@@ -69,18 +69,4 @@ function klms_module_init_menu_items()
         'position' => 1,
     ]);
 
-    // Placeholders until you add real pages
-    $CI->app_menu->add_sidebar_children_item('klms', [
-        'slug'     => 'klms-profile',
-        'name'     => _l('klms_profile'),
-        'href'     => admin_url('lms_admin/courses'),
-        'position' => 2,
-    ]);
-
-    $CI->app_menu->add_sidebar_children_item('klms', [
-        'slug'     => 'klms-settings',
-        'name'     => _l('klms_settings'),
-        'href'     => admin_url('lms_admin/courses'),
-        'position' => 3,
-    ]);
 }

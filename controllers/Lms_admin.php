@@ -6,49 +6,235 @@ class Lms_admin extends AdminController
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('elearning_model'); // class Elearning_model
+        $this->load->model('elearning_admin_model'); // class elearning_admin_model
+        $this->load->language('klms', 'english');
     }
 
     public function courses()
 {
-    $data['courses'] = $this->elearning_model->get_courses();
+    $data['courses'] = $this->elearning_admin_model->get_courses();
     $data['title']   = _l('klms_courses'); // Use language helper
     // $this->load->view('admin/add_course', $data); // Keep your existing view path
     $this->load->view('admin/manage_course', $data);
 }
 
-    public function add_course()
-    {
-        if ($this->input->post()) {
-            $this->elearning_model->add_course($this->input->post());
-            set_alert('success', 'Course added successfully');
-            redirect(admin_url('klms/Lms_admin/courses')); // lowercase in URL
+public function add_course()
+{
+    if ($this->input->post()) {
+        $course_data = $this->input->post();
+        
+        // Handle file upload
+        if (!empty($_FILES['cover_image']['name'])) {
+            $upload_config = [
+                'upload_path'   => './uploads/courses/',
+                'allowed_types' => 'gif|jpg|jpeg|png',
+                'max_size'      => 2048, // 2MB
+                'max_width'     => 2000,
+                'max_height'    => 2000,
+                'encrypt_name'  => true
+            ];
+            
+            // Create directory if it doesn't exist
+            if (!is_dir('./uploads/courses/')) {
+                mkdir('./uploads/courses/', 0755, true);
+            }
+            
+            $this->load->library('upload', $upload_config);
+            
+            if ($this->upload->do_upload('cover_image')) {
+                $upload_data = $this->upload->data();
+                $course_data['cover_image'] = 'uploads/courses/' . $upload_data['file_name'];
+            } else {
+                set_alert('warning', 'Image upload failed: ' . $this->upload->display_errors());
+                redirect(admin_url('klms/Lms_admin/add_course'));
+                return;
+            }
         }
-
-        $data['title'] = 'Add New Course';
-        $this->load->view('admin/add_course', $data);
+        
+        if ($this->elearning_admin_model->add_course($course_data)) {
+            set_alert('success', 'Course added successfully');
+        } else {
+            set_alert('warning', 'Error adding course');
+        }
+        
+        redirect(admin_url('klms/Lms_admin/courses'));
     }
+
+    $data['title'] = 'Add New Course';
+    $this->load->view('admin/add_course', $data);
+}
+
     public function get_course()
     {
-        $courses = $this->elearning_model->get_course();
+        $courses = $this->elearning_admin_model->get_course();
         if($courses){
             echo "hello";
         }else{
             echo "world";
         }
     }
-    public function edit_course($id)
-    {
-        echo "<pre>";
-        print($id);
-        echo "</pre>";
-        
+    /**
+ * Edit existing course
+ */
+public function edit_course($course_id = '')
+{
+    if (empty($course_id) || !is_numeric($course_id)) {
+        show_404();
     }
+
+    $course = $this->elearning_admin_model->get_course($course_id);
+    if (!$course) {
+        show_404();
+    }
+
+    if ($this->input->post()) {
+        $course_data = $this->input->post();
+        
+        // Handle file upload
+        if (!empty($_FILES['cover_image']['name'])) {
+            $upload_config = [
+                'upload_path'   => './uploads/courses/',
+                'allowed_types' => 'gif|jpg|jpeg|png',
+                'max_size'      => 2048,
+                'max_width'     => 2000,
+                'max_height'    => 2000,
+                'encrypt_name'  => true
+            ];
+            
+            if (!is_dir('./uploads/courses/')) {
+                mkdir('./uploads/courses/', 0755, true);
+            }
+            
+            $this->load->library('upload', $upload_config);
+            
+            if ($this->upload->do_upload('cover_image')) {
+                // Delete old image if exists
+                if (!empty($course['cover_image']) && file_exists($course['cover_image'])) {
+                    unlink($course['cover_image']);
+                }
+                
+                $upload_data = $this->upload->data();
+                $course_data['cover_image'] = 'uploads/courses/' . $upload_data['file_name'];
+            } else {
+                set_alert('warning', 'Image upload failed: ' . $this->upload->display_errors());
+            }
+        }
+        
+        if ($this->elearning_admin_model->update_course($course_id, $course_data)) {
+            set_alert('success', 'Course updated successfully');
+        } else {
+            set_alert('warning', 'Error updating course');
+        }
+        
+        redirect(admin_url('klms/Lms_admin/edit_course/' . $course_id));
+    }
+
+    $data['course'] = $course;
+    $data['title'] = 'Edit Course - ' . $course['title'];
+    $this->load->view('admin/edit_course', $data);
+}
     public function delete_course($id)
     {
         echo "<pre>";
         print($id);
         echo "</pre>";
+    }
+    public function manage_videos($course_id = '')
+    {
+        if(empty($course_id) || !is_numeric($course_id)){
+            show_404();
+        }
+        $course = $this->elearning_admin_model->get_course($course_id);
+
+        if(!$course){
+            show_404();
+        }
+        $videos = $this->elearning_admin_model->get_course_videos($course_id);
+
+        $data['course'] = $course;
+        $data['videos'] = $videos;
+        $data['title'] = 'Manage Videos - ' . $course['title'];
+        
+        $this->load->view('admin/manage_videos', $data);
+
+    }
+     public function add_video($course_id = '')
+    {
+        if (empty($course_id) || !is_numeric($course_id)) {
+            show_404();
+        }
+
+        $course = $this->elearning_admin_model->get_course($course_id);
+        if (!$course) {
+            show_404();
+        }
+
+        if ($this->input->post()) {
+            $video_data = $this->input->post();
+            $video_data['course_id'] = $course_id;
+            
+            if ($this->elearning_admin_model->add_video($video_data)) {
+                set_alert('success', 'Video added successfully');
+            } else {
+                set_alert('warning', 'Error adding video');
+            }
+            redirect(admin_url('klms/Lms_admin/manage_videos/' . $course_id));
+        }
+
+        $data['course'] = $course;
+        $data['title'] = 'Add Video - ' . $course['title'];
+        $this->load->view('admin/add_video', $data);
+    }
+
+    /**
+     * Edit existing video
+     */
+    public function edit_video($course_id = '', $video_id = '')
+    {
+        if (empty($course_id) || !is_numeric($course_id) || empty($video_id) || !is_numeric($video_id)) {
+            show_404();
+        }
+
+        $course = $this->elearning_admin_model->get_course($course_id);
+        $video = $this->elearning_admin_model->get_video($video_id);
+        
+        if (!$course || !$video) {
+            show_404();
+        }
+
+        if ($this->input->post()) {
+            $video_data = $this->input->post();
+            
+            if ($this->elearning_admin_model->update_video($video_id, $video_data)) {
+                set_alert('success', 'Video updated successfully');
+            } else {
+                set_alert('warning', 'Error updating video');
+            }
+            redirect(admin_url('lms_admin/manage_videos/' . $course_id));
+        }
+
+        $data['course'] = $course;
+        $data['video'] = $video;
+        $data['title'] = 'Edit Video - ' . $video['title'];
+        $this->load->view('admin/edit_video', $data);
+    }
+
+    /**
+     * Delete video
+     */
+    public function delete_video($course_id = '', $video_id = '')
+    {
+        if (empty($course_id) || !is_numeric($course_id) || empty($video_id) || !is_numeric($video_id)) {
+            redirect(admin_url('lms_admin/courses'));
+        }
+
+        if ($this->elearning_admin_model->delete_video($video_id)) {
+            set_alert('success', 'Video deleted successfully');
+        } else {
+            set_alert('warning', 'Error deleting video');
+        }
+        
+        redirect(admin_url('klms/Lms_admin/manage_videos/' . $course_id));
     }
 
 
@@ -58,12 +244,11 @@ class Lms_admin extends AdminController
  */
 //     public function test_courses()
 // {
-//     $courses = $this->elearning_model->get_courses();
+//     $courses = $this->elearning_admin_model->get_courses();
     
 //     echo "<h3>Testing get_courses() function:</h3>";
 //     echo "<pre>";
 //     var_dump($courses);
 //     echo "</pre>";
-    
 // }
 }

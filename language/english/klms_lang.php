@@ -16,3 +16,10 @@ $lang['klms_courses'] = 'Courses';
 $lang['klms_students'] = 'Students';
 $lang['klms_profile'] = 'Profile';
 $lang['klms_settings'] = 'Settings';
+
+
+$lang['klms_course_title'] = 'Course Title';
+$lang['klms_course_category'] = 'Category';
+$lang['klms_course_description'] = 'Description';
+$lang['klms_course_vimeo_url'] = 'Vimeo URL';
+$lang['save'] = 'Save';

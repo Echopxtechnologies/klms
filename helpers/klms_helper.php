@@ -15,7 +15,7 @@ if (!function_exists('klms_clients_area_get_course')) {
         if ($showGuest && !is_client_logged_in()) {
             add_theme_menu_item('klms-my-course-guest', [
                 'name'     => _l('klms_get_course'),
-                'href'     => site_url('videos'),
+                'href'     => site_url('klms/lms_users'),
                 'position' => 10,
             ]);
         }
@@ -23,7 +23,7 @@ if (!function_exists('klms_clients_area_get_course')) {
         if (is_client_logged_in() && $showTab) {
             add_theme_menu_item('klms-my-course-logged', [
                 'name'     => _l('klms_get_course'),
-                'href'     => site_url('videos'),
+                'href'     => site_url('klms/lms_users'),
                 'position' => 1,
             ]);
         }

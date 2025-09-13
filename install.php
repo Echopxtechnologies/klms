@@ -6,3 +6,7 @@ add_permission('klms', 'view');
 add_permission('klms', 'create');
 add_permission('klms', 'edit');
 add_permission('klms', 'delete');
+if (!is_dir('./uploads/courses/')) {
+    mkdir('./uploads/courses/', 0755, true);
+}
+
