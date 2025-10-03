@@ -124,4 +124,5 @@ class Elearning_admin_model extends App_Model
         $this->db->delete('elearning_videos');
         return $this->db->affected_rows() > 0;
     }
+
 }

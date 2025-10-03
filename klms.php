@@ -69,4 +69,11 @@ function klms_module_init_menu_items()
         'position' => 1,
     ]);
 
+        $CI->app_menu->add_sidebar_children_item('klms', [
+        'slug'     => 'klms-student',
+        'name'     => _l('klms_students'),
+        'href'     => admin_url('klms/Lms_admin/students'),
+        'position' => 1,
+    ]);
+
 }

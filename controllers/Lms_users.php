@@ -12,6 +12,9 @@ class Lms_users extends ClientsController
         // Additional libraries for enhanced functionality
         $this->load->library('pagination');
         $this->load->helper(['url', 'security']);
+        
+        // Define base URL for this module
+        $this->module_base_url = '/klms/lms_users';
     }
 
     /**
@@ -23,10 +26,10 @@ class Lms_users extends ClientsController
         $data['page_title'] = 'Learning Management System - Course Catalog';
         
         // Get courses with pagination support
-        $config['base_url'] = site_url('lms_users/index');
+        $config['base_url'] = site_url($this->module_base_url . '/index');
         $config['total_rows'] = $this->elearing_user_model->get_courses_count();
         $config['per_page'] = 12; // Show 12 courses per page
-        $config['uri_segment'] = 3;
+        $config['uri_segment'] = 4; // Updated for correct segment
         $config['use_page_numbers'] = TRUE;
         
         // Pagination styling for Bootstrap
@@ -52,7 +55,7 @@ class Lms_users extends ClientsController
         
         $this->pagination->initialize($config);
         
-        $page = ($this->uri->segment(3)) ? $this->uri->segment(3) : 1;
+        $page = ($this->uri->segment(4)) ? $this->uri->segment(4) : 1; // Updated segment
         $offset = ($page - 1) * $config['per_page'];
         
         // Get courses for current page
@@ -63,6 +66,9 @@ class Lms_users extends ClientsController
         $data['categories'] = $this->elearing_user_model->get_all_categories();
         $data['total_courses'] = $config['total_rows'];
         $data['featured_courses'] = $this->elearing_user_model->get_featured_courses(6);
+        
+        // Pass module base URL to view
+        $data['module_base_url'] = $this->module_base_url;
         
         $this->data($data);
         $this->view('users/index'); 
@@ -95,10 +101,11 @@ class Lms_users extends ClientsController
         $data['video_count'] = count($videos);
         $data['total_duration'] = $this->calculate_total_duration($videos);
         $data['related_courses'] = $related_courses;
+        $data['module_base_url'] = $this->module_base_url;
         
         // Breadcrumb data
         $data['breadcrumb'] = [
-            ['title' => 'Courses', 'url' => site_url('lms_users')],
+            ['title' => 'Courses', 'url' => site_url($this->module_base_url)],
             ['title' => $course['title'], 'url' => '']
         ];
 
@@ -128,11 +135,12 @@ class Lms_users extends ClientsController
         $data['videos'] = $videos;
         $data['video_count'] = count($videos);
         $data['total_duration'] = $this->calculate_total_duration($videos);
+        $data['module_base_url'] = $this->module_base_url;
         
         // Breadcrumb data
         $data['breadcrumb'] = [
-            ['title' => 'Courses', 'url' => site_url('lms_users')],
-            ['title' => $course['title'], 'url' => site_url('lms_users/view_course/' . $course_id)],
+            ['title' => 'Courses', 'url' => site_url($this->module_base_url)],
+            ['title' => $course['title'], 'url' => site_url($this->module_base_url . '/view_course/' . $course_id)],
             ['title' => 'Videos', 'url' => '']
         ];
 
@@ -180,12 +188,13 @@ class Lms_users extends ClientsController
         $data['total_videos'] = count($all_videos);
         $data['previous_video'] = $previous_video;
         $data['next_video'] = $next_video;
+        $data['module_base_url'] = $this->module_base_url;
         
         // Breadcrumb data
         $data['breadcrumb'] = [
-            ['title' => 'Courses', 'url' => site_url('lms_users')],
-            ['title' => $course['title'], 'url' => site_url('lms_users/view_course/' . $course_id)],
-            ['title' => 'Videos', 'url' => site_url('lms_users/course_videos/' . $course_id)],
+            ['title' => 'Courses', 'url' => site_url($this->module_base_url)],
+            ['title' => $course['title'], 'url' => site_url($this->module_base_url . '/view_course/' . $course_id)],
+            ['title' => 'Videos', 'url' => site_url($this->module_base_url . '/course_videos/' . $course_id)],
             ['title' => $video['title'], 'url' => '']
         ];
 
@@ -219,6 +228,7 @@ class Lms_users extends ClientsController
         $data['courses'] = $courses;
         $data['categories'] = $this->elearing_user_model->get_all_categories();
         $data['results_count'] = count($courses);
+        $data['module_base_url'] = $this->module_base_url;
 
         $this->data($data);
         $this->view('users/search_results');
@@ -231,7 +241,7 @@ class Lms_users extends ClientsController
     public function category($category_name = null)
     {
         if (!$category_name) {
-            redirect('lms_users');
+            redirect($this->module_base_url);
         }
 
         $category_name = urldecode($category_name);
@@ -242,6 +252,7 @@ class Lms_users extends ClientsController
         $data['courses'] = $courses;
         $data['categories'] = $this->elearing_user_model->get_all_categories();
         $data['course_count'] = count($courses);
+        $data['module_base_url'] = $this->module_base_url;
 
         $this->data($data);
         $this->view('users/category');
@@ -273,7 +284,7 @@ class Lms_users extends ClientsController
         
         // Format courses for frontend
         foreach ($courses as &$course) {
-            $course['url'] = site_url('lms_users/view_course/' . $course['id']);
+            $course['url'] = site_url($this->module_base_url . '/view_course/' . $course['id']);
             $course['formatted_date'] = date('M d, Y', strtotime($course['created_at']));
         }
 
@@ -307,7 +318,7 @@ class Lms_users extends ClientsController
                 'id' => $course['id'],
                 'label' => $course['title'],
                 'category' => $course['category'],
-                'url' => site_url('lms_users/view_course/' . $course['id'])
+                'url' => site_url($this->module_base_url . '/view_course/' . $course['id'])
             ];
         }
 

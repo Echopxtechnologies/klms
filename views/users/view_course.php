@@ -16,6 +16,22 @@
                             <div class="course-badge">
                                 <i class="fa fa-tag"></i> <?php echo html_escape($course['category']); ?>
                             </div>
+                            <div class="course-badges-top">
+                                <!-- Price Badge -->
+                                <div class="price-badge">
+                                    <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                        <span class="price-free">FREE</span>
+                                    <?php else: ?>
+                                        <span class="price-paid">$<?php echo number_format($course['price'], 2); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <!-- Level Badge -->
+                                <div class="level-badge">
+                                    <span class="level-<?php echo strtolower($course['level']); ?>">
+                                        <?php echo html_escape($course['level']); ?>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 <?php else: ?>
@@ -23,6 +39,22 @@
                         <i class="fa fa-graduation-cap fa-5x"></i>
                         <div class="course-badge">
                             <i class="fa fa-tag"></i> <?php echo html_escape($course['category']); ?>
+                        </div>
+                        <div class="course-badges-top">
+                            <!-- Price Badge -->
+                            <div class="price-badge">
+                                <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                    <span class="price-free">FREE</span>
+                                <?php else: ?>
+                                    <span class="price-paid">$<?php echo number_format($course['price'], 2); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <!-- Level Badge -->
+                            <div class="level-badge">
+                                <span class="level-<?php echo strtolower($course['level']); ?>">
+                                    <?php echo html_escape($course['level']); ?>
+                                </span>
+                            </div>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -61,16 +93,52 @@
                         </div>
                         <div class="meta-item">
                             <i class="fa fa-clock-o text-muted"></i>
-                            <span><?php echo $total_duration; ?></span>
+                            <span><?php echo !empty($course['course_duration']) ? html_escape($course['course_duration']) : $total_duration; ?></span>
                         </div>
                         <div class="meta-item">
                             <i class="fa fa-play-circle text-muted"></i>
                             <span><?php echo $video_count; ?> Videos</span>
                         </div>
+                        <div class="meta-item">
+                            <i class="fa fa-signal text-muted"></i>
+                            <span><?php echo html_escape($course['level']); ?> Level</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fa fa-globe text-muted"></i>
+                            <span><?php echo html_escape($course['language']); ?></span>
+                        </div>
                         <?php if (!empty($course['updated_at']) && $course['updated_at'] !== $course['created_at']): ?>
                         <div class="meta-item">
                             <i class="fa fa-refresh text-muted"></i>
                             <span>Updated <?php echo date('M d, Y', strtotime($course['updated_at'])); ?></span>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Course Highlights -->
+                    <div class="course-highlights">
+                        <div class="highlight-item">
+                            <i class="fa fa-money text-success"></i>
+                            <span>
+                                <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                    <strong class="text-success">Free Course</strong>
+                                <?php else: ?>
+                                    <strong class="text-warning">Paid Course - $<?php echo number_format($course['price'], 2); ?></strong>
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                        <div class="highlight-item">
+                            <i class="fa fa-users text-info"></i>
+                            <span><strong><?php echo html_escape($course['level']); ?></strong> Level</span>
+                        </div>
+                        <div class="highlight-item">
+                            <i class="fa fa-globe text-primary"></i>
+                            <span>Available in <strong><?php echo html_escape($course['language']); ?></strong></span>
+                        </div>
+                        <?php if (!empty($course['course_duration'])): ?>
+                        <div class="highlight-item">
+                            <i class="fa fa-clock-o text-warning"></i>
+                            <span>Duration: <strong><?php echo html_escape($course['course_duration']); ?></strong></span>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -91,7 +159,12 @@
                     <div class="curriculum-header">
                         <h3>Course Content</h3>
                         <p class="text-muted">
-                            <?php echo $video_count; ?> videos • Total duration: <?php echo $total_duration; ?>
+                            <?php echo $video_count; ?> videos
+                            <?php if (!empty($course['course_duration'])): ?>
+                                • Total duration: <?php echo html_escape($course['course_duration']); ?>
+                            <?php elseif (!empty($total_duration)): ?>
+                                • Total duration: <?php echo $total_duration; ?>
+                            <?php endif; ?>
                         </p>
                     </div>
 
@@ -161,6 +234,21 @@
         <!-- Course Actions Card -->
         <div class="panel_s sticky-sidebar">
             <div class="panel-body text-center">
+                <!-- Course Price Display -->
+                <div class="course-price-display">
+                    <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                        <div class="price-free-large">
+                            <i class="fa fa-gift"></i>
+                            <span>FREE COURSE</span>
+                        </div>
+                    <?php else: ?>
+                        <div class="price-paid-large">
+                            <div class="price-amount">$<?php echo number_format($course['price'], 2); ?></div>
+                            <div class="price-label">One-time payment</div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
                 <h4 class="tw-mb-4">Start Learning</h4>
                 
                 <?php if (!empty($videos)): ?>
@@ -189,10 +277,57 @@
                             <div class="stat-label">Videos</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value"><?php echo $total_duration; ?></div>
+                            <div class="stat-value">
+                                <?php echo !empty($course['course_duration']) ? html_escape($course['course_duration']) : $total_duration; ?>
+                            </div>
                             <div class="stat-label">Duration</div>
                         </div>
                     </div>
+                    <div class="stat-row">
+                        <div class="stat-item">
+                            <div class="stat-value"><?php echo html_escape($course['level']); ?></div>
+                            <div class="stat-label">Level</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value"><?php echo html_escape($course['language']); ?></div>
+                            <div class="stat-label">Language</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Details -->
+                <div class="course-details-sidebar">
+                    <h5>Course Details</h5>
+                    <ul class="course-details-list">
+                        <li>
+                            <i class="fa fa-signal"></i>
+                            <span>Skill Level: <strong><?php echo html_escape($course['level']); ?></strong></span>
+                        </li>
+                        <li>
+                            <i class="fa fa-globe"></i>
+                            <span>Language: <strong><?php echo html_escape($course['language']); ?></strong></span>
+                        </li>
+                        <li>
+                            <i class="fa fa-tag"></i>
+                            <span>Category: <strong><?php echo html_escape($course['category']); ?></strong></span>
+                        </li>
+                        <?php if (!empty($course['course_duration'])): ?>
+                        <li>
+                            <i class="fa fa-clock-o"></i>
+                            <span>Duration: <strong><?php echo html_escape($course['course_duration']); ?></strong></span>
+                        </li>
+                        <?php endif; ?>
+                        <li>
+                            <i class="fa fa-calendar"></i>
+                            <span>Created: <strong><?php echo date('M Y', strtotime($course['created_at'])); ?></strong></span>
+                        </li>
+                        <?php if (!empty($course['updated_at']) && $course['updated_at'] !== $course['created_at']): ?>
+                        <li>
+                            <i class="fa fa-refresh"></i>
+                            <span>Updated: <strong><?php echo date('M Y', strtotime($course['updated_at'])); ?></strong></span>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -223,8 +358,15 @@
                                     </a>
                                 </h6>
                                 <small class="text-muted">
-                                    <?php echo html_escape($related['category']); ?>
+                                    <?php echo html_escape($related['category']); ?> • <?php echo html_escape($related['level']); ?>
                                 </small>
+                                <div class="related-course-price">
+                                    <?php if ($related['is_free'] == 1 || $related['price'] == 0): ?>
+                                        <span class="price-tag-free">FREE</span>
+                                    <?php else: ?>
+                                        <span class="price-tag-paid">$<?php echo number_format($related['price'], 2); ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -275,7 +417,7 @@
     background: rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: flex-start;
-    justify-content: flex-start;
+    justify-content: space-between;
     padding: 20px;
 }
 
@@ -286,6 +428,56 @@
     border-radius: 20px;
     font-size: 14px;
     font-weight: 500;
+}
+
+/* Course Badges in Hero */
+.course-badges-top {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.price-badge .price-free,
+.price-badge .price-paid {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.price-badge .price-free {
+    background: #28a745;
+    color: white;
+}
+
+.price-badge .price-paid {
+    background: #ffc107;
+    color: #333;
+}
+
+.level-badge span {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.level-badge .level-beginner {
+    background: #28a745;
+    color: white;
+}
+
+.level-badge .level-intermediate {
+    background: #ffc107;
+    color: #333;
+}
+
+.level-badge .level-advanced {
+    background: #dc3545;
+    color: white;
 }
 
 /* Course Header */
@@ -313,6 +505,28 @@
     gap: 8px;
     color: #666;
     font-size: 14px;
+}
+
+/* Course Highlights */
+.course-highlights {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.highlight-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.highlight-item i {
+    font-size: 16px;
 }
 
 /* Course Description */
@@ -435,6 +649,45 @@
     top: 20px;
 }
 
+/* Course Price Display */
+.course-price-display {
+    margin-bottom: 25px;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.price-free-large {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.price-paid-large {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    color: #333;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.price-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.price-label {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
 .course-stats {
     margin-top: 20px;
 }
@@ -442,6 +695,7 @@
 .stat-row {
     display: flex;
     justify-content: space-around;
+    margin-bottom: 15px;
 }
 
 .stat-item {
@@ -449,7 +703,7 @@
 }
 
 .stat-value {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: #007bff;
 }
@@ -460,17 +714,55 @@
     margin-top: 2px;
 }
 
+/* Course Details Sidebar */
+.course-details-sidebar {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.course-details-sidebar h5 {
+    margin-bottom: 15px;
+    color: #333;
+    font-weight: 600;
+}
+
+.course-details-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.course-details-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+
+.course-details-list li:last-child {
+    border-bottom: none;
+}
+
+.course-details-list i {
+    width: 16px;
+    text-align: center;
+    color: #666;
+}
+
 /* Related Courses */
 .related-courses {
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
 }
 
 .related-course-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
-    padding: 10px 0;
+    padding: 12px 0;
     border-bottom: 1px solid #f0f0f0;
 }
 
@@ -479,8 +771,8 @@
 }
 
 .related-course-image {
-    width: 50px;
-    height: 35px;
+    width: 60px;
+    height: 40px;
     border-radius: 4px;
     overflow: hidden;
     background: #f8f9fa;
@@ -501,8 +793,13 @@
     font-size: 14px;
 }
 
+.related-course-info {
+    flex: 1;
+    min-width: 0;
+}
+
 .related-course-info h6 {
-    margin: 0 0 3px 0;
+    margin: 0 0 5px 0;
     font-size: 14px;
     line-height: 1.3;
 }
@@ -514,6 +811,29 @@
 
 .related-course-info a:hover {
     color: #007bff;
+}
+
+.related-course-price {
+    margin-top: 5px;
+}
+
+.price-tag-free {
+    background: #28a745;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.price-tag-paid {
+    background: #ffc107;
+    color: #333;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
 }
 
 /* No Videos State */
@@ -536,6 +856,11 @@
         gap: 10px;
     }
     
+    .course-highlights {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
     .video-item-content {
         flex-direction: column;
         align-items: flex-start;
@@ -550,6 +875,16 @@
     .sticky-sidebar {
         position: static;
     }
+    
+    .stat-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .course-badges-top {
+        flex-direction: row;
+        align-items: center;
+    }
 }
 
 @media (max-width: 576px) {
@@ -562,9 +897,23 @@
         padding: 12px 15px;
     }
     
-    .stat-row {
-        flex-direction: column;
-        gap: 15px;
+    .course-overlay {
+        padding: 15px;
+    }
+
+    .course-badges-top {
+        gap: 5px;
+    }
+
+    .price-badge .price-free,
+    .price-badge .price-paid {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .level-badge span {
+        font-size: 10px;
+        padding: 4px 8px;
     }
 }
 </style>

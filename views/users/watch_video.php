@@ -48,17 +48,17 @@
                     <nav aria-label="breadcrumb" class="tw-mb-4">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item">
-                                <a href="<?php echo site_url('lms_users'); ?>">
+                                <a href="<?php echo site_url($module_base_url); ?>">
                                     <i class="fa fa-home"></i> Courses
                                 </a>
                             </li>
                             <li class="breadcrumb-item">
-                                <a href="<?php echo site_url('lms_users/view_course/' . $course['id']); ?>">
+                                <a href="<?php echo site_url($module_base_url . '/view_course/' . $course['id']); ?>">
                                     <?php echo html_escape($course['title']); ?>
                                 </a>
                             </li>
                             <li class="breadcrumb-item">
-                                <a href="<?php echo site_url('lms_users/course_videos/' . $course['id']); ?>">
+                                <a href="<?php echo site_url($module_base_url . '/course_videos/' . $course['id']); ?>">
                                     Videos
                                 </a>
                             </li>
@@ -101,6 +101,39 @@
                                 </div>
                             <?php endif; ?>
                         </div>
+
+                        <!-- Course Context Info -->
+                        <div class="course-context-info">
+                            <div class="context-item">
+                                <i class="fa fa-signal text-info"></i>
+                                <span>Course Level: <strong><?php echo html_escape($course['level']); ?></strong></span>
+                            </div>
+                            <div class="context-item">
+                                <i class="fa fa-globe text-success"></i>
+                                <span>Language: <strong><?php echo html_escape($course['language']); ?></strong></span>
+                            </div>
+                            <div class="context-item">
+                                <i class="fa fa-tag text-primary"></i>
+                                <span>Category: <strong><?php echo html_escape($course['category']); ?></strong></span>
+                            </div>
+                            <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                <div class="context-item">
+                                    <i class="fa fa-gift text-success"></i>
+                                    <span><strong class="text-success">Free Course</strong></span>
+                                </div>
+                            <?php else: ?>
+                                <div class="context-item">
+                                    <i class="fa fa-money text-warning"></i>
+                                    <span>Course Price: <strong class="text-warning">$<?php echo number_format($course['price'], 2); ?></strong></span>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (!empty($course['course_duration'])): ?>
+                                <div class="context-item">
+                                    <i class="fa fa-clock-o text-info"></i>
+                                    <span>Total Duration: <strong><?php echo html_escape($course['course_duration']); ?></strong></span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     
                     <!-- Video Description -->
@@ -115,7 +148,7 @@
                     <div class="video-navigation">
                         <div class="nav-buttons">
                             <?php if ($previous_video): ?>
-                                <a href="<?php echo site_url('lms_users/watch_video/' . $course['id'] . '/' . $previous_video['id']); ?>" 
+                                <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $previous_video['id']); ?>" 
                                    class="btn btn-default btn-lg">
                                     <i class="fa fa-chevron-left"></i> Previous Video
                                     <small class="nav-video-title"><?php echo html_escape($previous_video['title']); ?></small>
@@ -123,7 +156,7 @@
                             <?php endif; ?>
                             
                             <?php if ($next_video): ?>
-                                <a href="<?php echo site_url('lms_users/watch_video/' . $course['id'] . '/' . $next_video['id']); ?>" 
+                                <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $next_video['id']); ?>" 
                                    class="btn btn-primary btn-lg">
                                     Next Video <i class="fa fa-chevron-right"></i>
                                     <small class="nav-video-title"><?php echo html_escape($next_video['title']); ?></small>
@@ -149,6 +182,35 @@
                     <p class="text-muted course-category">
                         <i class="fa fa-tag"></i> <?php echo html_escape($course['category']); ?>
                     </p>
+
+                    <!-- Course Details in Sidebar -->
+                    <div class="course-sidebar-details">
+                        <div class="detail-row">
+                            <i class="fa fa-signal text-info"></i>
+                            <span><?php echo html_escape($course['level']); ?> Level</span>
+                        </div>
+                        <div class="detail-row">
+                            <i class="fa fa-globe text-success"></i>
+                            <span><?php echo html_escape($course['language']); ?></span>
+                        </div>
+                        <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                            <div class="detail-row">
+                                <i class="fa fa-gift text-success"></i>
+                                <span class="text-success font-weight-bold">FREE</span>
+                            </div>
+                        <?php else: ?>
+                            <div class="detail-row">
+                                <i class="fa fa-money text-warning"></i>
+                                <span class="text-warning font-weight-bold">$<?php echo number_format($course['price'], 2); ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($course['course_duration'])): ?>
+                            <div class="detail-row">
+                                <i class="fa fa-clock-o text-info"></i>
+                                <span><?php echo html_escape($course['course_duration']); ?></span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                     
                     <div class="course-progress">
                         <div class="progress-stats">
@@ -163,11 +225,11 @@
                     </div>
                     
                     <div class="course-actions">
-                        <a href="<?php echo site_url('lms_users/view_course/' . $course['id']); ?>" 
+                        <a href="<?php echo site_url($module_base_url . '/view_course/' . $course['id']); ?>" 
                            class="btn btn-default btn-sm btn-block">
                             <i class="fa fa-arrow-left"></i> Back to Course
                         </a>
-                        <a href="<?php echo site_url('lms_users/course_videos/' . $course['id']); ?>" 
+                        <a href="<?php echo site_url($module_base_url . '/course_videos/' . $course['id']); ?>" 
                            class="btn btn-info btn-sm btn-block">
                             <i class="fa fa-th"></i> All Videos
                         </a>
@@ -186,7 +248,7 @@
                     <div class="videos-playlist">
                         <?php foreach ($all_videos as $index => $playlist_video): ?>
                             <div class="playlist-item <?php echo ($playlist_video['id'] == $video['id']) ? 'active' : ''; ?>">
-                                <a href="<?php echo site_url('lms_users/watch_video/' . $course['id'] . '/' . $playlist_video['id']); ?>"
+                                <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $playlist_video['id']); ?>"
                                    class="playlist-link">
                                     <div class="playlist-number">
                                         <?php if ($playlist_video['id'] == $video['id']): ?>
@@ -216,6 +278,42 @@
                                 </a>
                             </div>
                         <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Course Summary Card -->
+            <div class="panel_s">
+                <div class="panel-body">
+                    <h6><i class="fa fa-info-circle"></i> Course Summary</h6>
+                    
+                    <div class="course-summary">
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <div class="summary-value"><?php echo $total_videos; ?></div>
+                                <div class="summary-label">Videos</div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-value">
+                                    <?php echo !empty($course['course_duration']) ? html_escape($course['course_duration']) : 'N/A'; ?>
+                                </div>
+                                <div class="summary-label">Duration</div>
+                            </div>
+                        </div>
+                        
+                        <div class="summary-badges">
+                            <span class="badge badge-<?php echo ($course['level'] == 'Beginner') ? 'success' : (($course['level'] == 'Intermediate') ? 'warning' : 'danger'); ?>">
+                                <?php echo html_escape($course['level']); ?>
+                            </span>
+                            <span class="badge badge-info">
+                                <?php echo html_escape($course['language']); ?>
+                            </span>
+                            <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                <span class="badge badge-success">FREE</span>
+                            <?php else: ?>
+                                <span class="badge badge-warning">PAID</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -327,7 +425,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
 
 .meta-item {
@@ -335,6 +433,29 @@
     align-items: center;
     gap: 8px;
     color: #666;
+    font-size: 14px;
+}
+
+/* Course Context Info */
+.course-context-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.context-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.context-item i {
     font-size: 14px;
 }
 
@@ -396,8 +517,33 @@
 }
 
 .course-category {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     font-size: 13px;
+}
+
+/* Course Sidebar Details */
+.course-sidebar-details {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.detail-row:last-child {
+    margin-bottom: 0;
+}
+
+.detail-row i {
+    width: 16px;
+    text-align: center;
 }
 
 .course-progress {
@@ -512,6 +658,48 @@
     flex-shrink: 0;
 }
 
+/* Course Summary */
+.course-summary {
+    text-align: center;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.summary-item {
+    text-align: center;
+}
+
+.summary-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #007bff;
+    margin-bottom: 3px;
+}
+
+.summary-label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+}
+
+.summary-badges .badge {
+    font-size: 10px;
+    padding: 4px 8px;
+}
+
 /* Quick Actions */
 .quick-actions {
     display: flex;
@@ -540,6 +728,12 @@
     .video-meta {
         flex-direction: column;
         gap: 10px;
+    }
+
+    .course-context-info {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 15px;
     }
     
     .nav-buttons {
@@ -574,6 +768,11 @@
         flex: 1;
         min-width: 0;
     }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -607,6 +806,14 @@
     .playlist-title {
         font-size: 13px;
     }
+
+    .course-context-info {
+        padding: 12px;
+    }
+
+    .context-item {
+        font-size: 12px;
+    }
 }
 </style>
 
@@ -620,13 +827,13 @@ $(document).ready(function() {
     $(document).keydown(function(e) {
         <?php if ($previous_video): ?>
         if (e.key === 'ArrowLeft') {
-            window.location.href = '<?php echo site_url('lms_users/watch_video/' . $course['id'] . '/' . $previous_video['id']); ?>';
+            window.location.href = '<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $previous_video['id']); ?>';
         }
         <?php endif; ?>
         
         <?php if ($next_video): ?>
         if (e.key === 'ArrowRight') {
-            window.location.href = '<?php echo site_url('lms_users/watch_video/' . $course['id'] . '/' . $next_video['id']); ?>';
+            window.location.href = '<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $next_video['id']); ?>';
         }
         <?php endif; ?>
     });

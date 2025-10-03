@@ -60,6 +60,66 @@
                 </div>
             </div>
 
+            <!-- Level Filter -->
+            <div class="panel_s">
+                <div class="panel-body">
+                    <h5><i class="fa fa-signal"></i> Filter by Level</h5>
+                    <div class="level-filters">
+                        <div class="level-item <?php echo empty($this->input->get('level')) ? 'active' : ''; ?>">
+                            <a href="<?php echo site_url('lms_users'); ?>" class="level-link">
+                                <i class="fa fa-th-large"></i>
+                                <span>All Levels</span>
+                            </a>
+                        </div>
+                        <div class="level-item <?php echo ($this->input->get('level') == 'Beginner') ? 'active' : ''; ?>">
+                            <a href="<?php echo site_url('klms/lms_users') . '?level=Beginner'; ?>" class="level-link">
+                                <i class="fa fa-circle-o"></i>
+                                <span>Beginner</span>
+                            </a>
+                        </div>
+                        <div class="level-item <?php echo ($this->input->get('level') == 'Intermediate') ? 'active' : ''; ?>">
+                            <a href="<?php echo site_url('klms/lms_users') . '?level=Intermediate'; ?>" class="level-link">
+                                <i class="fa fa-adjust"></i>
+                                <span>Intermediate</span>
+                            </a>
+                        </div>
+                        <div class="level-item <?php echo ($this->input->get('level') == 'Advanced') ? 'active' : ''; ?>">
+                            <a href="<?php echo site_url('klms/lms_users') . '?level=Advanced'; ?>" class="level-link">
+                                <i class="fa fa-circle"></i>
+                                <span>Advanced</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Filter -->
+            <div class="panel_s">
+                <div class="panel-body">
+                    <h5><i class="fa fa-money"></i> Filter by Price</h5>
+                    <div class="price-filters">
+                        <div class="price-item <?php echo empty($this->input->get('price_type')) ? 'active' : ''; ?>">
+                            <a href="<?php echo site_url('lms_users'); ?>" class="price-link">
+                                <i class="fa fa-th-large"></i>
+                                <span>All Courses</span>
+                            </a>
+                        </div>
+                        <div class="price-item <?php echo ($this->input->get('price_type') == 'free') ? 'active' : ''; ?>">
+                            <a href="<?php echo site_url('klms/lms_users') . '?price_type=free'; ?>" class="price-link">
+                                <i class="fa fa-gift"></i>
+                                <span>Free Courses</span>
+                            </a>
+                        </div>
+                        <div class="price-item <?php echo ($this->input->get('price_type') == 'paid') ? 'active' : ''; ?>">
+                            <a href="<?php echo site_url('klms/lms_users') . '?price_type=paid'; ?>" class="price-link">
+                                <i class="fa fa-credit-card"></i>
+                                <span>Paid Courses</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Course Statistics -->
             <div class="panel_s">
                 <div class="panel-body">
@@ -119,10 +179,14 @@
                         <div class="sort-controls">
                             <label for="sort-select">Sort by:</label>
                             <select id="sort-select" class="form-control form-control-sm">
+                                <option value="sort_order_asc">Default Order</option>
                                 <option value="date_desc">Newest First</option>
                                 <option value="date_asc">Oldest First</option>
                                 <option value="title_asc">Title A-Z</option>
                                 <option value="title_desc">Title Z-A</option>
+                                <option value="price_asc">Price: Low to High</option>
+                                <option value="price_desc">Price: High to Low</option>
+                                <option value="level">Level</option>
                                 <option value="category">Category</option>
                             </select>
                         </div>
@@ -149,6 +213,12 @@
                 Showing <span id="showing-count"><?php echo count($courses); ?></span> courses
                 <?php if (!empty($this->input->get('category'))): ?>
                     in <strong><?php echo html_escape($this->input->get('category')); ?></strong>
+                <?php endif; ?>
+                <?php if (!empty($this->input->get('level'))): ?>
+                    - <strong><?php echo html_escape($this->input->get('level')); ?></strong> level
+                <?php endif; ?>
+                <?php if (!empty($this->input->get('price_type'))): ?>
+                    - <strong><?php echo ucfirst($this->input->get('price_type')); ?></strong> courses
                 <?php endif; ?>
             </div>
             
@@ -200,6 +270,22 @@
                                         </a>
                                     </div>
                                 </div>
+
+                                <!-- Price Badge -->
+                                <div class="course-price-badge">
+                                    <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                        <span class="price-free">FREE</span>
+                                    <?php else: ?>
+                                        <span class="price-paid">$<?php echo number_format($course['price'], 2); ?></span>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Level Badge -->
+                                <div class="course-level-badge">
+                                    <span class="level-<?php echo strtolower($course['level']); ?>">
+                                        <?php echo html_escape($course['level']); ?>
+                                    </span>
+                                </div>
                             </div>
                             
                             <!-- Course Info -->
@@ -228,6 +314,17 @@
                                         ?>
                                     </div>
                                 </div>
+
+                                <div class="course-details">
+                                    <div class="detail-item">
+                                        <i class="fa fa-clock-o"></i>
+                                        <span><?php echo !empty($course['course_duration']) ? html_escape($course['course_duration']) : 'Duration not specified'; ?></span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <i class="fa fa-globe"></i>
+                                        <span><?php echo html_escape($course['language']); ?></span>
+                                    </div>
+                                </div>
                                 
                                 <div class="course-actions">
                                     <a href="<?php echo site_url('klms/lms_users/view_course/' . $course['id']); ?>" 
@@ -250,10 +347,14 @@
                                         <tr>
                                             <th width="60">Image</th>
                                             <th>Course Title</th>
-                                            <th width="150">Category</th>
-                                            <th width="100">Videos</th>
-                                            <th width="120">Created</th>
-                                            <th width="120">Actions</th>
+                                            <th width="100">Price</th>
+                                            <th width="100">Level</th>
+                                            <th width="120">Category</th>
+                                            <th width="80">Videos</th>
+                                            <th width="100">Duration</th>
+                                            <th width="80">Language</th>
+                                            <th width="100">Created</th>
+                                            <th width="100">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -284,6 +385,18 @@
                                                     </small>
                                                 </td>
                                                 <td>
+                                                    <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                                        <span class="label label-success">FREE</span>
+                                                    <?php else: ?>
+                                                        <span class="label label-warning">$<?php echo number_format($course['price'], 2); ?></span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <span class="label label-<?php echo ($course['level'] == 'Beginner') ? 'success' : (($course['level'] == 'Intermediate') ? 'warning' : 'danger'); ?>">
+                                                        <?php echo html_escape($course['level']); ?>
+                                                    </span>
+                                                </td>
+                                                <td>
                                                     <span class="label label-info">
                                                         <?php echo html_escape($course['category']); ?>
                                                     </span>
@@ -295,6 +408,16 @@
                                                         echo $video_count;
                                                         ?>
                                                     </span>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        <?php echo !empty($course['course_duration']) ? html_escape($course['course_duration']) : '-'; ?>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        <?php echo html_escape($course['language']); ?>
+                                                    </small>
                                                 </td>
                                                 <td>
                                                     <small class="text-muted">
@@ -507,6 +630,49 @@
     color: white;
 }
 
+/* Level Filters */
+.level-filters, .price-filters {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.level-item, .price-item {
+    margin-bottom: 3px;
+}
+
+.level-item.active .level-link, .price-item.active .price-link {
+    background-color: #007bff;
+    color: white;
+    border-radius: 4px;
+}
+
+.level-link, .price-link {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+.level-link:hover, .price-link:hover {
+    background-color: #f8f9fa;
+    text-decoration: none;
+    color: #007bff;
+}
+
+.level-item.active .level-link:hover, .price-item.active .price-link:hover {
+    background-color: #0056b3;
+    color: white;
+}
+
+.level-link i, .price-link i {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
 /* Statistics */
 .stats-grid {
     display: grid;
@@ -677,6 +843,70 @@
     gap: 5px;
 }
 
+/* Price and Level Badges */
+.course-price-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 2;
+}
+
+.price-free {
+    background: #28a745;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.price-paid {
+    background: #ffc107;
+    color: #333;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.course-level-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 2;
+}
+
+.level-beginner {
+    background: #28a745;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.level-intermediate {
+    background: #ffc107;
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.level-advanced {
+    background: #dc3545;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
 /* Course Info */
 .course-info {
     padding: 20px;
@@ -716,6 +946,20 @@
 }
 
 .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.course-details {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 12px;
+    color: #666;
+}
+
+.detail-item {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -815,6 +1059,11 @@
     .course-overlay {
         opacity: 1;
         background: rgba(0, 0, 0, 0.4);
+    }
+
+    .course-details {
+        flex-direction: column;
+        gap: 8px;
     }
 }
 
@@ -981,6 +1230,14 @@ $(document).ready(function() {
                     aVal = $(a).find('.course-category').text().toLowerCase();
                     bVal = $(b).find('.course-category').text().toLowerCase();
                     return aVal.localeCompare(bVal);
+                    
+                case 'price_asc':
+                case 'price_desc':
+                    // For demo - in real implementation, you'd use actual price data
+                    aVal = $(a).find('.price-paid, .price-free').text();
+                    bVal = $(b).find('.price-paid, .price-free').text();
+                    return sortBy === 'price_asc' ? 
+                        aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
                     
                 default:
                     return 0;
