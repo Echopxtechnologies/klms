@@ -91,13 +91,13 @@
                                 </div>
                                 
                                 <?php if (!empty($videos)): ?>
-                                    <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $videos[0]['id']); ?>" 
+                                    <a href="<?php echo site_url('klms/Lms_users/watch_video/' . $course['id'] . '/' . $videos[0]['id']); ?>" 
                                        class="btn btn-primary btn-lg btn-block">
                                         <i class="fa fa-play"></i> Start Learning
                                     </a>
                                 <?php endif; ?>
                                 
-                                <a href="<?php echo site_url($module_base_url . '/view_course/' . $course['id']); ?>" 
+                                <a href="<?php echo site_url('klms/Lms_users/view_course/' . $course['id']); ?>" 
                                    class="btn btn-default btn-block">
                                     <i class="fa fa-arrow-left"></i> Back to Course
                                 </a>
@@ -209,7 +209,7 @@
                                     
                                     <!-- Play Button -->
                                     <div class="video-play-btn">
-                                        <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
+                                        <a href="<?php echo site_url('klms/Lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
                                             <i class="fa fa-play"></i>
                                         </a>
                                     </div>
@@ -218,7 +218,7 @@
                             
                             <div class="panel-body video-info">
                                 <h5 class="video-title">
-                                    <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
+                                    <a href="<?php echo site_url('klms/Lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
                                         <?php echo html_escape($video['title']); ?>
                                     </a>
                                 </h5>
@@ -246,7 +246,7 @@
                                 </div>
                                 
                                 <div class="video-actions">
-                                    <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>" 
+                                    <a href="<?php echo site_url('klms/Lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>" 
                                        class="btn btn-primary btn-sm">
                                         <i class="fa fa-play"></i> Watch Video
                                     </a>
@@ -307,7 +307,7 @@
                                             </td>
                                             <td>
                                                 <strong>
-                                                    <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
+                                                    <a href="<?php echo site_url('klms/Lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
                                                         <?php echo html_escape($video['title']); ?>
                                                     </a>
                                                 </strong>
@@ -350,7 +350,7 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group-sm">
-                                                    <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>" 
+                                                    <a href="<?php echo site_url('klms/Lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>" 
                                                        class="btn btn-primary btn-xs">
                                                         <i class="fa fa-play"></i> Watch
                                                     </a>
@@ -395,7 +395,7 @@
                                 </span>
                             <?php endif; ?>
                         </div>
-                        <a href="<?php echo site_url($module_base_url . '/view_course/' . $course['id']); ?>" 
+                        <a href="<?php echo site_url('klms/Lms_users/view_course/' . $course['id']); ?>" 
                            class="btn btn-default">
                             <i class="fa fa-arrow-left"></i> Back to Course
                         </a>

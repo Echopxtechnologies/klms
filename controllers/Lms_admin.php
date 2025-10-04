@@ -14,7 +14,7 @@ class Lms_admin extends AdminController
 
     public function courses()
 {
-    $data['courses'] = $this->elearning_admin_model->get_courses();
+    $data['courses'] = $this->elearning_admin_model->get_all_courses();
     $data['title']   = _l('klms_courses'); // Use language helper
     // $this->load->view('admin/add_course', $data); // Keep your existing view path
     $this->load->view('admin/manage_course', $data);
@@ -66,15 +66,29 @@ public function add_course()
     $this->load->view('admin/add_course', $data);
 }
 
-    public function get_course()
+    public function get_all_course()
     {
-        $courses = $this->elearning_admin_model->get_course();
+        $courses = $this->elearning_admin_model->get_all_courses();
         if($courses){
-            echo "hello";
+            return $course;
         }else{
-            echo "world";
+            set_alert('warning','No Course avaliable');
         }
     }
+
+        public function get_course($id)
+    {
+        $courses = $this->elearning_admin_model->get_course($id);
+        if($courses){
+            echo "<pre>";
+            print_r($courses);
+            echo "</pre>";
+        }else{
+            set_alert('warning','No Course avaliable');
+        }
+    }
+
+
     /**
  * Edit existing course
  */
@@ -245,17 +259,8 @@ public function add_student()
     if ($this->input->post()) {
         $post_data = $this->input->post();
         
-        // Debug: Check what data is being submitted
-        echo "<pre>POST Data: ";
-        print_r($post_data);
-        echo "</pre>";
-        
-        $success = $this->create_student_account($post_data);
-        
-        echo "<pre>Create result: ";
-        var_dump($success);
-        echo "</pre>";
-        die(); // Stop here to see the debug output
+
+        $success = $this->elearning_admin_model->create_student_account($post_data);
         
         if ($success) {
             set_alert('success', 'Student account created successfully');
@@ -263,124 +268,21 @@ public function add_student()
             set_alert('warning', 'Error creating student account');
         }
         
-        redirect(admin_url('lms_admin/students'));
+        redirect(admin_url('klms/Lms_admin/students'));
     }
 
     $data['title'] = 'Add New Student';
     $this->load->view('admin/add_student', $data);
 }
-public function check_table_structure()
-{
-    $query = $this->db->query("DESCRIBE " . db_prefix() . "clients");
-    $columns = $query->result_array();
-    
-    echo "<h3>Table Structure for tblclients:</h3>";
-    echo "<table border='1'>";
-    echo "<tr><th>Column</th><th>Type</th><th>Null</th><th>Key</th><th>Default</th></tr>";
-    foreach($columns as $column) {
-        echo "<tr>";
-        echo "<td>" . $column['Field'] . "</td>";
-        echo "<td>" . $column['Type'] . "</td>";
-        echo "<td>" . $column['Null'] . "</td>";
-        echo "<td>" . $column['Key'] . "</td>";
-        echo "<td>" . $column['Default'] . "</td>";
-        echo "</tr>";
-    }
-    echo "</table>";
-}
-
-    /**
-     * Create student account (similar to Authentication::register)
-     */
-   private function create_student_account($data)
-{
-    echo "<h3>Step 1: Input Validation</h3>";
-    
-    if (empty($data['firstname']) || empty($data['lastname']) || empty($data['email'])) {
-        echo "❌ Validation failed - missing required fields<br>";
-        return false;
-    }
-    echo "✅ Validation passed<br>";
-
-    echo "<h3>Step 2: Check Email Exists in Contacts</h3>";
-    
-    // Check in contacts table, not clients table
-    $this->db->where('email', $data['email']);
-    $existing = $this->db->get(db_prefix() . 'contacts')->row();
-    
-    if ($existing) {
-        echo "❌ Email already exists in contacts: " . $data['email'] . "<br>";
-        return false;
-    }
-    echo "✅ Email is unique<br>";
-
-    echo "<h3>Step 3: Insert into Contacts Table</h3>";
-    
-    $password = !empty($data['password']) ? $data['password'] : $this->generate_random_password();
-    
-    // Data for contacts table
-    $contact_data = [
-        'firstname'    => $data['firstname'],
-        'lastname'     => $data['lastname'], 
-        'email'        => $data['email'],
-        'phonenumber'  => isset($data['phonenumber']) ? $data['phonenumber'] : '',
-        'title'        => isset($data['title']) ? $data['title'] : 'Student',
-        'password'     => password_hash($password, PASSWORD_DEFAULT),
-        'datecreated'  => date('Y-m-d H:i:s'),
-        'active'       => 1,
-        'is_primary'   => 1,
-        'userid'       => 0, // 0 for individual contacts not linked to a client
-    ];
-
-    echo "<pre>Contact data to insert: ";
-    print_r($contact_data);
-    echo "</pre>";
-
-    // Insert into contacts table
-    $this->db->insert(db_prefix() . 'contacts', $contact_data);
-    
-    if ($this->db->affected_rows() > 0) {
-        $contact_id = $this->db->insert_id();
-        echo "✅ Student contact created successfully with ID: " . $contact_id . "<br>";
-        return $contact_id;
-    } else {
-        echo "❌ Insert failed<br>";
-        $error = $this->db->error();
-        echo "Database error: ";
-        print_r($error);
-        return false;
-    }
-}
 
 
-private function generate_random_password($length = 8)
-{
-    $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return substr(str_shuffle($characters), 0, $length);
-}
     /**
      * List all students
      */
-    // public function students()
-    // {
-    //     $data['students'] = $this->clients_model->get();
-    //     $data['title'] = 'Students Management';
-    //     $this->load->view('admin/students_list', $data);
-    // }
-
     public function students()
 {
     $students = $this->db->get(db_prefix() . 'contacts')->result_array();
     $data['students'] = $students ? $students : [];
-    
-    // Debug: Check the data structure
-    // if (!empty($students)) {
-    //     echo "<pre>";
-    //     print_r($students[0]); // Show first student structure
-    //     echo "</pre>";
-    //     die();
-    // }
-    
     $data['students'] = $students;
     $data['title'] = 'Students Management';
     $this->load->view('admin/students_list', $data);

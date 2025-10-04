@@ -1,5 +1,30 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
+<?php
+// Derived flags
+$price    = isset($course['price']) ? (float)$course['price'] : 0.0;
+$is_free  = !empty($course['is_free']) || $price <= 0.0;
+$is_paid  = !$is_free;
+
+// If the controller passed $can_watch use it, else default:
+// free courses = true, paid = false (until enrolled)
+if (!isset($can_watch)) {
+    $can_watch = $is_free ? true : false;
+}
+
+// Helpful URLs
+$urls = [
+    'details'     => site_url('klms/lms_users/view_course/'   . $course['id']),
+    'watch_first' => site_url('klms/lms_users/course_videos/' . $course['id']),
+    'purchase'    => site_url('klms/lms_users/registration/'  . $course['id']),
+];
+
+// Safer cover image existence check
+$cover_rel = !empty($course['cover_image']) ? ltrim($course['cover_image'], '/') : '';
+$cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
+?>
+
+
 <!-- Course Detail Page -->
 <div class="row">
     <!-- Main Course Content -->
@@ -46,7 +71,7 @@
                                 <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
                                     <span class="price-free">FREE</span>
                                 <?php else: ?>
-                                    <span class="price-paid">$<?php echo number_format($course['price'], 2); ?></span>
+                                    <span class="price-paid">₹<?php echo number_format($course['price'], 2); ?></span>
                                 <?php endif; ?>
                             </div>
                             <!-- Level Badge -->
@@ -200,10 +225,17 @@
                                                 </span>
                                             <?php endif; ?>
                                             
-                                            <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>" 
-                                               class="btn btn-sm btn-primary">
-                                                <i class="fa fa-play"></i> Watch
-                                            </a>
+                                            <?php if ($can_watch): ?>
+                                                <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>"
+                                                class="btn btn-sm btn-primary">
+                                                    <i class="fa fa-play"></i> Watch
+                                                </a>
+                                            <?php elseif ($is_paid): ?>
+                                                <a href="<?php echo $urls['purchase']; ?>" class="btn btn-sm btn-warning">
+                                                    <i class="fa fa-lock"></i> Buy / Enroll
+                                                </a>
+                                            <?php endif; ?>
+
                                         </div>
                                     </div>
                                 </div>
@@ -243,7 +275,7 @@
                         </div>
                     <?php else: ?>
                         <div class="price-paid-large">
-                            <div class="price-amount">$<?php echo number_format($course['price'], 2); ?></div>
+                            <div class="price-amount">₹<?php echo number_format($course['price'], 2); ?></div>
                             <div class="price-label">One-time payment</div>
                         </div>
                     <?php endif; ?>
@@ -251,12 +283,24 @@
 
                 <h4 class="tw-mb-4">Start Learning</h4>
                 
-                <?php if (!empty($videos)): ?>
-                    <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $videos[0]['id']); ?>" 
-                       class="btn btn-primary btn-lg btn-block tw-mb-3">
-                        <i class="fa fa-play"></i> Start Course
-                    </a>
+                <?php if ($can_watch): ?>
+                <a href="<?php echo site_url('klms/lms_users/course_videos/'.$course['id']); ?>"
+                    class="btn btn-primary btn-lg btn-block tw-mb-3">
+                    <i class="fa fa-play"></i> Start Course
+                </a>
+                <?php elseif ($is_paid): ?>
+                <a href="<?php echo site_url('klms/lms_users/purchase/'.$course['id']); ?>"
+                    class="btn btn-warning btn-lg btn-block tw-mb-3">
+                    <i class="fa fa-shopping-cart"></i> Buy / Enroll
+                </a>
+                <?php else: ?>
+                <a href="<?php echo site_url('klms/lms_users/course_videos/'.$course['id']); ?>"
+                    class="btn btn-primary btn-lg btn-block tw-mb-3">
+                    <i class="fa fa-play"></i> Start Course
+                </a>
                 <?php endif; ?>
+
+
                 
                 <a href="<?php echo site_url('klms/lms_users/course_videos/' . $course['id']); ?>" 
                    class="btn btn-default btn-block tw-mb-3">

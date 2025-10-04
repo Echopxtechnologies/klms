@@ -1,348 +1,363 @@
-<?php
-defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 class Lms_users extends ClientsController
 {
     public function __construct()
     {
         parent::__construct();
-        $this->load->model('elearing_user_model'); 
+        $this->load->model('elearning_user_model'); 
         $this->load->language('klms', 'english');
-        
-        // Additional libraries for enhanced functionality
-        $this->load->library('pagination');
-        $this->load->helper(['url', 'security']);
-        
-        // Define base URL for this module
-        $this->module_base_url = '/klms/lms_users';
+        $this->module_base_url = '/klms/Lms_users';
     }
 
-    /**
-     * Main course catalog page with grid/list view
-     */
     public function index()
     {
-        $data['title'] = _l('klms_get_course');
-        $data['page_title'] = 'Learning Management System - Course Catalog';
-        
-        // Get courses with pagination support
-        $config['base_url'] = site_url($this->module_base_url . '/index');
-        $config['total_rows'] = $this->elearing_user_model->get_courses_count();
-        $config['per_page'] = 12; // Show 12 courses per page
-        $config['uri_segment'] = 4; // Updated for correct segment
-        $config['use_page_numbers'] = TRUE;
-        
-        // Pagination styling for Bootstrap
-        $config['full_tag_open'] = '<nav><ul class="pagination">';
-        $config['full_tag_close'] = '</ul></nav>';
-        $config['first_link'] = 'First';
-        $config['first_tag_open'] = '<li class="page-item">';
-        $config['first_tag_close'] = '</li>';
-        $config['last_link'] = 'Last';
-        $config['last_tag_open'] = '<li class="page-item">';
-        $config['last_tag_close'] = '</li>';
-        $config['next_link'] = 'Next &raquo;';
-        $config['next_tag_open'] = '<li class="page-item">';
-        $config['next_tag_close'] = '</li>';
-        $config['prev_link'] = '&laquo; Previous';
-        $config['prev_tag_open'] = '<li class="page-item">';
-        $config['prev_tag_close'] = '</li>';
-        $config['cur_tag_open'] = '<li class="page-item active"><a class="page-link" href="#">';
-        $config['cur_tag_close'] = '</a></li>';
-        $config['num_tag_open'] = '<li class="page-item">';
-        $config['num_tag_close'] = '</li>';
-        $config['attributes'] = ['class' => 'page-link'];
-        
-        $this->pagination->initialize($config);
-        
-        $page = ($this->uri->segment(4)) ? $this->uri->segment(4) : 1; // Updated segment
-        $offset = ($page - 1) * $config['per_page'];
-        
-        // Get courses for current page
-        $data['courses'] = $this->elearing_user_model->get_courses_paginated($config['per_page'], $offset);
-        $data['pagination'] = $this->pagination->create_links();
-        
-        // Get additional data for filters and stats
-        $data['categories'] = $this->elearing_user_model->get_all_categories();
-        $data['total_courses'] = $config['total_rows'];
-        $data['featured_courses'] = $this->elearing_user_model->get_featured_courses(6);
-        
-        // Pass module base URL to view
+        // if (!is_client_logged_in()) {
+        //     redirect(site_url('authentication/login'));
+        // }
+
+        $contact_id = get_contact_user_id(); // IMPORTANT: contact, not client
+        $data = $this->elearning_user_model->get_all_courses_data($this->module_base_url, $contact_id);
         $data['module_base_url'] = $this->module_base_url;
-        
+
         $this->data($data);
-        $this->view('users/index'); 
+        $this->view('users/all_courses');
         $this->layout();
     }
 
-    /**
-     * Single course detail page with video list
-     */
     public function view_course($course_id = null)
-    {
-        if (!$course_id || !is_numeric($course_id)) {
-            show_404();
-        }
+{
+    if (!is_client_logged_in()) redirect(site_url('authentication/login'));
+    if (!$course_id || !is_numeric($course_id)) show_404();
 
-        $course = $this->elearing_user_model->get_course($course_id);
-        if (!$course) {
-            show_404();
-        }
+    $course = $this->elearning_admin_model->get_course($course_id);
+    if (!$course) show_404();
 
-        // Get course videos
-        $videos = $this->elearing_user_model->get_course_videos($course_id);
-        
-        // Get related courses
-        $related_courses = $this->elearing_user_model->get_courses_by_category($course['category'], $course_id, 4);
-        
-        $data['title'] = html_escape($course['title']);
-        $data['course'] = $course;
-        $data['videos'] = $videos;
-        $data['video_count'] = count($videos);
-        $data['total_duration'] = $this->calculate_total_duration($videos);
-        $data['related_courses'] = $related_courses;
-        $data['module_base_url'] = $this->module_base_url;
-        
-        // Breadcrumb data
-        $data['breadcrumb'] = [
-            ['title' => 'Courses', 'url' => site_url($this->module_base_url)],
-            ['title' => $course['title'], 'url' => '']
-        ];
+    $videos          = $this->elearning_admin_model->get_course_videos($course_id);
+    $related_courses = $this->elearning_admin_model->get_courses_by_category($course['category'], $course_id, 4);
 
-        $this->data($data);
-        $this->view('users/view_course');
-        $this->layout();
-    }
+    $contact_id = get_contact_user_id(); // contact id
+    $can_watch  = $this->elearning_user_model->client_has_access_to_course($contact_id, $course_id);
+
+    $data = [
+        'title'           => $course['title'],
+        'course'          => $course,
+        'videos'          => $videos,
+        'video_count'     => count($videos),
+        'total_duration'  => $this->calculate_total_duration($videos),
+        'related_courses' => $related_courses,
+        'module_base_url' => $this->module_base_url,
+        'breadcrumb'      => [
+            ['title'=>'Courses','url'=>site_url($this->module_base_url)],
+            ['title'=>$course['title'],'url'=>''],
+        ],
+        'can_watch'       => $can_watch, // <- pass to view
+        'is_paid'         => !(!empty($course['is_free']) || (float)$course['price'] <= 0),
+    ];
+
+    $this->data($data);
+    $this->view('users/view_course');
+    $this->layout();
+}
+    
 
     /**
-     * Course videos listing page
+     * Guard a paid course before letting them see videos.
      */
     public function course_videos($course_id = null)
-    {
-        if (!$course_id || !is_numeric($course_id)) {
-            show_404();
-        }
-
-        $course = $this->elearing_user_model->get_course($course_id);
-        if (!$course) {
-            show_404();
-        }
-
-        $videos = $this->elearing_user_model->get_course_videos($course_id);
-        
-        $data['title'] = 'Videos - ' . html_escape($course['title']);
-        $data['course'] = $course;
-        $data['videos'] = $videos;
-        $data['video_count'] = count($videos);
-        $data['total_duration'] = $this->calculate_total_duration($videos);
-        $data['module_base_url'] = $this->module_base_url;
-        
-        // Breadcrumb data
-        $data['breadcrumb'] = [
-            ['title' => 'Courses', 'url' => site_url($this->module_base_url)],
-            ['title' => $course['title'], 'url' => site_url($this->module_base_url . '/view_course/' . $course_id)],
-            ['title' => 'Videos', 'url' => '']
-        ];
-
-        $this->data($data);
-        $this->view('users/course_videos');
-        $this->layout();
+{
+    if (!is_client_logged_in()) {
+        redirect(site_url('authentication/login'));
     }
 
-    /**
-     * Video player page
-     */
-    public function watch_video($course_id = null, $video_id = null)
-    {
-        if (!$course_id || !is_numeric($course_id) || !$video_id || !is_numeric($video_id)) {
-            show_404();
-        }
+    if (!$course_id || !is_numeric($course_id)) {
+        show_404();
+    }
 
-        $course = $this->elearing_user_model->get_course($course_id);
-        $video = $this->elearing_user_model->get_video($video_id);
-        
-        if (!$course || !$video || $video['course_id'] != $course_id) {
-            show_404();
-        }
+    // Get the contact_id of the logged-in user
+    $contact_id = get_contact_user_id();
 
-        // Get all videos for navigation
-        $all_videos = $this->elearing_user_model->get_course_videos($course_id);
-        
-        // Find current video position and get next/previous
-        $current_index = 0;
-        foreach ($all_videos as $index => $v) {
-            if ($v['id'] == $video_id) {
-                $current_index = $index;
-                break;
-            }
-        }
-        
-        $previous_video = isset($all_videos[$current_index - 1]) ? $all_videos[$current_index - 1] : null;
-        $next_video = isset($all_videos[$current_index + 1]) ? $all_videos[$current_index + 1] : null;
-        
-        $data['title'] = html_escape($video['title']);
-        $data['course'] = $course;
-        $data['video'] = $video;
-        $data['all_videos'] = $all_videos;
-        $data['current_index'] = $current_index + 1;
-        $data['total_videos'] = count($all_videos);
-        $data['previous_video'] = $previous_video;
-        $data['next_video'] = $next_video;
-        $data['module_base_url'] = $this->module_base_url;
-        
-        // Breadcrumb data
-        $data['breadcrumb'] = [
+    // Check if the user has access to the course
+    if (!$this->elearning_user_model->client_has_access_to_course($contact_id, $course_id)) {
+        set_alert('warning', 'Please purchase this course to watch the videos.');
+        redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
+        return;
+    }
+
+    // Fetch course data and videos
+    $course = $this->elearning_admin_model->get_course($course_id);
+    $videos = $this->elearning_admin_model->get_course_videos($course_id);
+    $video_count = count($videos);
+
+    // Find the video the user wants to watch (if provided)
+    $video_id = $this->uri->segment(4);
+    $video = $this->elearning_admin_model->get_video($video_id, $course_id);
+
+    // Determine the next and previous videos in the course
+    $previous_video = $this->elearning_admin_model->get_previous_video($video_id, $course_id);
+    $next_video = $this->elearning_admin_model->get_next_video($video_id, $course_id);
+
+    // Current video index
+    $current_index = array_search($video_id, array_column($videos, 'id')) + 1;
+
+    // Data for the view
+    $data = [
+        'title' => 'Watch Video - ' . html_escape($video['title']),
+        'course' => $course,
+        'video' => $video,
+        'videos' => $videos,
+        'total_videos' => $video_count,
+        'current_index' => $current_index,
+        'previous_video' => $previous_video,
+        'next_video' => $next_video,
+        'breadcrumb' => [
             ['title' => 'Courses', 'url' => site_url($this->module_base_url)],
             ['title' => $course['title'], 'url' => site_url($this->module_base_url . '/view_course/' . $course_id)],
             ['title' => 'Videos', 'url' => site_url($this->module_base_url . '/course_videos/' . $course_id)],
-            ['title' => $video['title'], 'url' => '']
+            ['title' => $video['title'], 'url' => ''],
+        ],
+    ];
+
+    // Load the view
+    $this->data($data);
+    $this->view('users/course_videos');
+    $this->layout();
+}
+
+public function watch_video($course_id = null, $video_id = null)
+{
+    // 1. Authentication check
+    if (!is_client_logged_in()) {
+        set_alert('warning', 'Please log in to watch videos.');
+        redirect(site_url('authentication/login'));
+        return;
+    }
+
+    // 2. Input validation with strict type checking
+    if (!$course_id || !$video_id || !is_numeric($course_id) || !is_numeric($video_id)) {
+        show_404();
+        return;
+    }
+
+    // Cast to integers to prevent SQL injection
+    $course_id = (int)$course_id;
+    $video_id = (int)$video_id;
+
+    // 3. Get contact ID securely
+    $contact_id = get_contact_user_id();
+    if (!$contact_id) {
+        set_alert('danger', 'Invalid session. Please log in again.');
+        redirect(site_url('authentication/login'));
+        return;
+    }
+
+    // 4. Verify course access
+    if (!$this->elearning_user_model->client_has_access_to_course($contact_id, $course_id)) {
+        set_alert('warning', 'You need to enroll in this course to watch videos.');
+        redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
+        return;
+    }
+
+    // 5. Fetch course and verify it exists
+    $course = $this->elearning_admin_model->get_course($course_id);
+    if (!$course) {
+        show_404();
+        return;
+    }
+
+    // 6. Fetch video and verify it belongs to the course
+    $video = $this->elearning_admin_model->get_video($video_id, $course_id);
+    if (!$video || (int)$video['course_id'] !== $course_id) {
+        set_alert('danger', 'Video not found or does not belong to this course.');
+        redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
+        return;
+    }
+
+    // 7. Get all videos for navigation
+    $videos = $this->elearning_admin_model->get_course_videos($course_id);
+    $total_videos = count($videos);
+
+    // 8. Get navigation videos
+    $previous_video = $this->elearning_admin_model->get_previous_video($video_id, $course_id);
+    $next_video = $this->elearning_admin_model->get_next_video($video_id, $course_id);
+
+    // 9. Calculate current index safely
+    $current_index = 1;
+    foreach ($videos as $idx => $v) {
+        if ((int)$v['id'] === $video_id) {
+            $current_index = $idx + 1;
+            break;
+        }
+    }
+
+    // 10. Prepare view data
+    $data = [
+        'title' => 'Watch: ' . html_escape($video['title']),
+        'course' => $course,
+        'video' => $video,
+        'videos' => $videos,
+        'total_videos' => $total_videos,
+        'current_index' => $current_index,
+        'previous_video' => $previous_video,
+        'next_video' => $next_video,
+        'module_base_url' => $this->module_base_url,
+        'breadcrumb' => [
+            ['title' => 'Courses', 'url' => site_url($this->module_base_url)],
+            ['title' => html_escape($course['title']), 'url' => site_url($this->module_base_url . '/view_course/' . $course_id)],
+            ['title' => html_escape($video['title']), 'url' => ''],
+        ],
+    ];
+
+    // 11. Load view
+    $this->data($data);
+    $this->view('users/watch_video');
+    $this->layout();
+}
+
+    /**
+     * Optional purchase endpoint (skeleton).
+     * Implement your gateway here, then create an enrollment row on success.
+     */
+public function purchase($course_id)
+{
+    if (!is_client_logged_in()) redirect(site_url('authentication/login'));
+    if (!$course_id || !is_numeric($course_id)) show_404();
+
+    $course = $this->elearning_admin_model->get_course($course_id);
+    if (!$course) show_404();
+
+    $data = [
+        'title'  => 'Purchase Course',
+        'course' => $course,
+    ];
+
+    $this->data($data);
+    $this->view('users/purchase');
+    $this->layout();
+}
+
+private function current_contact_id()
+{
+    // Perfex helper – contact logged in
+    if (function_exists('get_contact_user_id')) {
+        $cid = get_contact_user_id();
+        if ($cid) return (int)$cid;
+    }
+
+    // Fallback: try to map company -> primary contact
+    if (function_exists('get_client_user_id')) {
+        $companyId = get_client_user_id();
+        if ($companyId) {
+            $row = $this->db->where('userid', $companyId)
+                            ->where('is_primary', 1)
+                            ->get(db_prefix().'contacts')
+                            ->row();
+            if ($row) return (int)$row->id;
+        }
+    }
+
+    return 0;
+}
+
+
+/**
+ * Simulated payment success handler
+ * (in future, payment gateway webhook will redirect here)
+ */
+public function payment_success($course_id)
+{
+    if (!is_client_logged_in()) redirect(site_url('authentication/login'));
+    if (!$course_id || !is_numeric($course_id)) show_404();
+
+    $contact_id = $this->current_contact_id();   // ✅ CONTACT id
+    if (!$contact_id) {
+        set_alert('warning','Could not determine your contact profile. Please log out and log in again.');
+        redirect(site_url('authentication/login'));
+        return;
+    }
+
+    $enrollment = [
+        'student_id'        => $contact_id,              // ✅ matches tblcontacts.id
+        'course_id'         => (int)$course_id,
+        'enrolled_date'     => date('Y-m-d H:i:s'),
+        'payment_status'    => 'paid',
+        'payment_reference' => 'TEST-'.strtoupper(bin2hex(random_bytes(4))),
+        'expiry_date'       => null,
+        'access_status'     => 'active',
+    ];
+
+    // upsert
+    $exists = $this->db->where('student_id', $contact_id)
+                       ->where('course_id', (int)$course_id)
+                       ->get(db_prefix().'elearning_enrollments')
+                       ->row();
+
+    if ($exists) {
+        $this->db->where('id', $exists->id)->update(db_prefix().'elearning_enrollments', [
+            'payment_status'    => 'paid',
+            'payment_reference' => $enrollment['payment_reference'],
+            'access_status'     => 'active',
+        ]);
+    } else {
+        $this->db->insert(db_prefix().'elearning_enrollments', $enrollment);
+    }
+
+    set_alert('success','Payment simulated successfully! You are now enrolled.');
+    redirect(site_url('klms/lms_users/course_videos/'.$course_id));
+}
+
+    public function registration($course_id = null)
+    {
+        if(is_client_logged_in()){
+            redirect(site_url('klms/Lms_users/purchase/'.$course_id));
+        }
+        if ($this->input->method(true) === 'POST') {
+            $post = $this->input->post(null, true);
+
+            // Create + auto-enroll (your wrapper)
+            $student_id = $this->elearning_user_model->enroll_student($post, (int)$course_id);
+
+            if ($student_id) {
+                set_alert('success', 'Registration successful and enrollment created.');
+                redirect(site_url($this->module_base_url . '/enroll_success/' . (int)$course_id));
+                return;
+            }
+            set_alert('warning', 'Registration failed. The email may already be registered.');
+        }
+
+        $return_to = $this->input->get('return_to', true) ?: site_url($this->module_base_url);
+        $data = [
+            'title'           => 'Student Registration',
+            'return_to'       => $return_to,
+            'module_base_url' => $this->module_base_url,
+            'course_id'       => (int)$course_id,
+        ];
+        $this->data($data);
+        $this->view('users/register_user');
+        $this->layout();
+    }
+
+
+    /**
+     * Simple confirmation page after registration
+     */
+    public function enroll_success($course_id = null)
+    {
+        if (!$course_id) show_404();
+
+        $course = $this->elearning_admin_model->get_course($course_id);
+
+        $data = [
+            'title'      => 'Enrollment Successful',
+            'course'     => $course,
+            'module_base_url' => $this->module_base_url,
         ];
 
         $this->data($data);
-        $this->view('users/watch_video');
+        $this->view('users/enroll_success');
         $this->layout();
     }
 
-    /**
-     * Search courses with filters
-     */
-    public function search()
-    {
-        $search_term = $this->input->get('q', TRUE);
-        $category = $this->input->get('category', TRUE);
-        
-        // Prepare filters
-        $filters = [];
-        if (!empty($search_term)) {
-            $filters['search'] = $search_term;
-        }
-        if (!empty($category) && $category !== 'all') {
-            $filters['category'] = $category;
-        }
-
-        $courses = $this->elearing_user_model->advanced_search($filters);
-
-        $data['title'] = 'Search Results';
-        $data['search_term'] = $search_term;
-        $data['category'] = $category;
-        $data['courses'] = $courses;
-        $data['categories'] = $this->elearing_user_model->get_all_categories();
-        $data['results_count'] = count($courses);
-        $data['module_base_url'] = $this->module_base_url;
-
-        $this->data($data);
-        $this->view('users/search_results');
-        $this->layout();
-    }
-
-    /**
-     * Browse courses by category
-     */
-    public function category($category_name = null)
-    {
-        if (!$category_name) {
-            redirect($this->module_base_url);
-        }
-
-        $category_name = urldecode($category_name);
-        $courses = $this->elearing_user_model->get_courses_by_category($category_name);
-
-        $data['title'] = 'Courses in ' . html_escape($category_name);
-        $data['category_name'] = $category_name;
-        $data['courses'] = $courses;
-        $data['categories'] = $this->elearing_user_model->get_all_categories();
-        $data['course_count'] = count($courses);
-        $data['module_base_url'] = $this->module_base_url;
-
-        $this->data($data);
-        $this->view('users/category');
-        $this->layout();
-    }
-
-    /**
-     * AJAX endpoints for dynamic loading
-     */
-    public function ajax_load_courses()
-    {
-        if (!$this->input->is_ajax_request()) {
-            show_404();
-        }
-
-        $page = $this->input->post('page', TRUE) ?: 1;
-        $category = $this->input->post('category', TRUE);
-        $sort = $this->input->post('sort', TRUE) ?: 'date_desc';
-        $limit = 12;
-        $offset = ($page - 1) * $limit;
-
-        // Prepare filters
-        $filters = [];
-        if (!empty($category) && $category !== 'all') {
-            $filters['category'] = $category;
-        }
-
-        $courses = $this->elearing_user_model->get_courses_paginated($limit, $offset, $filters, $sort);
-        
-        // Format courses for frontend
-        foreach ($courses as &$course) {
-            $course['url'] = site_url($this->module_base_url . '/view_course/' . $course['id']);
-            $course['formatted_date'] = date('M d, Y', strtotime($course['created_at']));
-        }
-
-        $response = [
-            'courses' => $courses,
-            'has_more' => count($courses) == $limit,
-            'csrf_token' => $this->security->get_csrf_hash()
-        ];
-
-        echo json_encode($response);
-        exit;
-    }
-
-    public function ajax_search_suggestions()
-    {
-        if (!$this->input->is_ajax_request()) {
-            show_404();
-        }
-
-        $term = $this->input->get('term', TRUE);
-        if (strlen($term) < 2) {
-            echo json_encode([]);
-            exit;
-        }
-
-        $courses = $this->elearing_user_model->search_courses($term, 10);
-        $suggestions = [];
-
-        foreach ($courses as $course) {
-            $suggestions[] = [
-                'id' => $course['id'],
-                'label' => $course['title'],
-                'category' => $course['category'],
-                'url' => site_url($this->module_base_url . '/view_course/' . $course['id'])
-            ];
-        }
-
-        echo json_encode($suggestions);
-        exit;
-    }
-
-    /**
-     * Get course statistics (AJAX)
-     */
-    public function ajax_get_statistics()
-    {
-        if (!$this->input->is_ajax_request()) {
-            show_404();
-        }
-
-        $statistics = $this->elearing_user_model->get_courses_statistics();
-        echo json_encode($statistics);
-        exit;
-    }
-
-    /**
-     * Helper method to calculate total video duration
-     */
     private function calculate_total_duration($videos)
     {
         $total_minutes = 0;
@@ -368,14 +383,9 @@ class Lms_users extends ClientsController
         }
     }
 
-    /**
-     * Extract Vimeo video ID from URL
-     */
-    private function extract_vimeo_id($url)
-    {
-        if (preg_match('/vimeo\.com\/(\d+)/', $url, $matches)) {
-            return $matches[1];
-        }
-        return false;
-    }
+
+
+
+
+
 }

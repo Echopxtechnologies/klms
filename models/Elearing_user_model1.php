@@ -10,6 +10,7 @@ class Elearing_user_model extends App_Model
         parent::__construct();
     }
 
+
     /**
      * Get courses with pagination and filtering for DataTables
      */
@@ -791,4 +792,12 @@ class Elearing_user_model extends App_Model
         
         return $query->result_array();
     }
+
+
+    public function get_student_by_client_id($client_id)
+{
+    return $this->db->where('clientid', $client_id)
+                    ->get(db_prefix().'klms_students') // adjust table name if different
+                    ->row_array();
+}
 }
