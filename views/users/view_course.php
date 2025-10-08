@@ -11,19 +11,21 @@ $is_paid  = !$is_free;
 if (!isset($can_watch)) {
     $can_watch = $is_free ? true : false;
 }
+// Helpful URLs (respect login state)
+$base = 'klms/lms_users';
 
-// Helpful URLs
 $urls = [
-    'details'     => site_url('klms/lms_users/view_course/'   . $course['id']),
-    'watch_first' => site_url('klms/lms_users/course_videos/' . $course['id']),
-    'purchase'    => site_url('klms/lms_users/registration/'  . $course['id']),
+    'details'      => site_url($base . '/view_course/'   . $course['id']),
+    'watch_first'  => site_url($base . '/course_videos/' . $course['id']),
+    'purchase'     => site_url($base . '/purchase/'      . $course['id']),      // for logged-in clients
+    'registration' => site_url($base . '/registration/'  . $course['id']),      // for guests
+    'login_back'   => site_url('authentication/login?redirect_to=' . urlencode(site_url($base . '/view_course/' . $course['id']))),
 ];
 
-// Safer cover image existence check
+// Safer cover image existence check (filesystem path)
 $cover_rel = !empty($course['cover_image']) ? ltrim($course['cover_image'], '/') : '';
 $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
 ?>
-
 
 <!-- Course Detail Page -->
 <div class="row">
@@ -32,11 +34,11 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
         <!-- Course Hero Section -->
         <div class="course-hero panel_s">
             <div class="course-hero-content">
-                <?php if (!empty($course['cover_image']) && file_exists($course['cover_image'])): ?>
+                <?php if ($cover_rel && is_file($cover_abs)): ?>
                     <div class="course-hero-image">
-                        <img src="<?php echo base_url($course['cover_image']); ?>" 
-                             alt="<?php echo html_escape($course['title']); ?>" 
-                             class="img-responsive">
+                        <img src="<?php echo base_url($cover_rel); ?>" 
+                            alt="<?php echo html_escape($course['title']); ?>" 
+                            class="img-responsive">
                         <div class="course-overlay">
                             <div class="course-badge">
                                 <i class="fa fa-tag"></i> <?php echo html_escape($course['category']); ?>
@@ -226,15 +228,30 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                                             <?php endif; ?>
                                             
                                             <?php if ($can_watch): ?>
-                                                <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>"
+                                            <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>"
                                                 class="btn btn-sm btn-primary">
-                                                    <i class="fa fa-play"></i> Watch
-                                                </a>
+                                                <i class="fa fa-play"></i> Watch
+                                            </a>
+
                                             <?php elseif ($is_paid): ?>
+                                            <?php if (is_client_logged_in()): ?>
                                                 <a href="<?php echo $urls['purchase']; ?>" class="btn btn-sm btn-warning">
-                                                    <i class="fa fa-lock"></i> Buy / Enroll
+                                                <i class="fa fa-lock"></i> Buy / Enroll
+                                                </a>
+                                            <?php else: ?>
+                                                <a href="<?php echo $urls['login_back']; ?>" class="btn btn-sm btn-warning">
+                                                <i class="fa fa-sign-in"></i> Login to Buy
                                                 </a>
                                             <?php endif; ?>
+
+                                            <?php else: ?>
+                                            <!-- Free course -->
+                                            <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>"
+                                                class="btn btn-sm btn-primary">
+                                                <i class="fa fa-play"></i> Watch
+                                            </a>
+                                            <?php endif; ?>
+
 
                                         </div>
                                     </div>
@@ -282,23 +299,38 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                 </div>
 
                 <h4 class="tw-mb-4">Start Learning</h4>
-                
+
                 <?php if ($can_watch): ?>
-                <a href="<?php echo site_url('klms/lms_users/course_videos/'.$course['id']); ?>"
+                <a href="<?php echo $urls['watch_first']; ?>"
                     class="btn btn-primary btn-lg btn-block tw-mb-3">
                     <i class="fa fa-play"></i> Start Course
                 </a>
+
                 <?php elseif ($is_paid): ?>
-                <a href="<?php echo site_url('klms/lms_users/purchase/'.$course['id']); ?>"
+                <?php if (is_client_logged_in()): ?>
+                    <a href="<?php echo $urls['purchase']; ?>"
                     class="btn btn-warning btn-lg btn-block tw-mb-3">
                     <i class="fa fa-shopping-cart"></i> Buy / Enroll
-                </a>
+                    </a>
                 <?php else: ?>
-                <a href="<?php echo site_url('klms/lms_users/course_videos/'.$course['id']); ?>"
+                    <a href="<?php echo $urls['login_back']; ?>"
+                    class="btn btn-warning btn-lg btn-block tw-mb-3">
+                    <i class="fa fa-sign-in"></i> Login to Buy
+                    </a>
+                    <a href="<?php echo $urls['registration']; ?>"
+                    class="btn btn-default btn-block tw-mb-3">
+                    <i class="fa fa-user-plus"></i> New here? Register
+                    </a>
+                <?php endif; ?>
+
+                <?php else: ?>
+                <!-- Free course & not enrolled (still allowed) -->
+                <a href="<?php echo $urls['watch_first']; ?>"
                     class="btn btn-primary btn-lg btn-block tw-mb-3">
                     <i class="fa fa-play"></i> Start Course
                 </a>
                 <?php endif; ?>
+
 
 
                 

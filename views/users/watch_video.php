@@ -144,6 +144,14 @@
                         <i class="fa fa-tag"></i>
                         <?php echo html_escape($course['category']); ?>
                     </div>
+                    <div class="enrollment-status">
+                        <div class="status-badge status-active">
+                            <i class="fa fa-check-circle"></i> Enrolled & Active
+                        </div>
+                        <small class="text-muted">
+                            Access granted on <?php echo date('M d, Y', strtotime($course['enrolled_date'] ?? date('Y-m-d'))); ?>
+                        </small>
+                    </div>
 
                     <!-- Course Progress -->
                     <div class="course-progress-section">
@@ -264,6 +272,29 @@
     width: 100%;
     height: 100%;
     border: 0;
+}
+
+.enrollment-status {
+    margin: 15px 0;
+    padding: 12px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #155724;
+    margin-bottom: 5px;
+}
+
+.status-badge i {
+    font-size: 16px;
 }
 
 .video-error,
@@ -775,12 +806,19 @@
             player.on('timeupdate', function(data) {
                 // You can send AJAX requests to track progress
                 // console.log('Video progress:', data.percent);
+                if (data.percent > 0.9 && !progressMarked) {
+                    progressMarked = true;
+                    markVideoAsWatched();
+                }
             });
             
             player.on('ended', function() {
-                // Auto-play next video or show completion message
+                if (!progressMarked) {
+                    markVideoAsWatched();
+                }
+                
                 <?php if ($next_video): ?>
-                // Uncomment to auto-play next video
+                // Optional: Auto-play next video
                 // setTimeout(function() {
                 //     window.location.href = '<?php echo site_url($module_base_url . '/watch_video/' . (int)$course['id'] . '/' . (int)$next_video['id']); ?>';
                 // }, 2000);
@@ -790,6 +828,20 @@
         } catch (error) {
             console.error('Vimeo player initialization error:', error);
         }
+    }
+    function markVideoAsWatched() {
+        $.ajax({
+            url: '<?php echo admin_url("klms/mark_video_watched"); ?>',
+            type: 'POST',
+            data: {
+                course_id: <?php echo (int)$course['id']; ?>,
+                video_id: <?php echo (int)$video['id']; ?>,
+                <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
+            },
+            success: function(response) {
+                console.log('Video progress saved');
+            }
+        });
     }
     
     /**

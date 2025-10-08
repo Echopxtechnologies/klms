@@ -174,53 +174,65 @@ public function get_course($course_id)
     /**
      * Create student account (similar to Authentication::register)
      */
-    public function create_student_account($data, $auto_enroll_course_id = null)
-    {
-        if (empty($data['firstname']) || empty($data['lastname']) || empty($data['email']) || empty($data['password'])) {
-            return false;
-        }
-
-        // Check if email already exists
-        $this->db->where('email', $data['email']);
-        $existing = $this->db->get(db_prefix() . 'contacts')->row();
-        if ($existing) {
-            return false;
-        }
-
-        // Prepare data for tblcontacts
-        $contact_data = [
-            'firstname'         => $data['firstname'],
-            'lastname'          => $data['lastname'],
-            'email'             => $data['email'],
-            'phonenumber'       => $data['phonenumber'] ?? '',
-            'title'             => $data['title'] ?? 'Student',
-            'password'          => password_hash($data['password'], PASSWORD_DEFAULT),
-            'datecreated'       => date('Y-m-d H:i:s'),
-            'email_verified_at' => date('Y-m-d H:i:s'),
-            'active'            => 1,
-            'is_primary'        => 1,
-            'userid'            => 0, // 0 for standalone contacts
-        ];
-
-        // Insert new student (contact)
-        $this->db->insert(db_prefix() . 'contacts', $contact_data);
-
-        if ($this->db->affected_rows() > 0) {
-            $contact_id = $this->db->insert_id();
-
-            // Store for later retrieval
-            $this->set_last_created_student_id($contact_id);
-
-            // Auto-enroll if course ID provided
-            if (!empty($auto_enroll_course_id)) {
-                $this->enroll_student($contact_id, $auto_enroll_course_id, 'free');
-            }
-
-            return $contact_id;
-        }
-
+    /**
+ * Create student account (contact only, no enrollment)
+ * @param array $data
+ * @param int|null $auto_enroll_course_id (deprecated - kept for compatibility)
+ * @return int|false Contact ID or false
+ */
+public function create_student_account($data, $auto_enroll_course_id = null)
+{
+    // Validate required fields
+    if (empty($data['firstname']) || empty($data['lastname']) || empty($data['email']) || empty($data['password'])) {
+        log_activity('Student registration failed: Missing required fields');
         return false;
     }
+
+    // Normalize email
+    $email = trim(strtolower($data['email']));
+
+    // CRITICAL: Check if email already exists
+    $existing = $this->db->where('email', $email)
+                         ->get(db_prefix() . 'contacts')
+                         ->row();
+    
+    if ($existing) {
+        log_activity('Student registration failed: Duplicate email - ' . $email);
+        return false;
+    }
+
+    // Hash password using Perfex's hasher
+    $hashed_password = app_hasher()->HashPassword($data['password']);
+
+    // Prepare contact data
+    $contact_data = [
+        'firstname'         => trim($data['firstname']),
+        'lastname'          => trim($data['lastname']),
+        'email'             => $email, // Normalized email
+        'phonenumber'       => $data['phonenumber'] ?? '',
+        'title'             => $data['title'] ?? 'Student',
+        'password'          => $hashed_password, // Use Perfex hasher
+        'datecreated'       => date('Y-m-d H:i:s'),
+        'email_verified_at' => date('Y-m-d H:i:s'),
+        'active'            => 1,
+        'is_primary'        => 1,
+        'userid'            => 0, // Standalone contact
+    ];
+
+    // Insert new student contact
+    $this->db->insert(db_prefix() . 'contacts', $contact_data);
+
+    if ($this->db->affected_rows() > 0) {
+        $contact_id = $this->db->insert_id();
+
+        // Log successful creation
+        log_activity('New student contact created: ' . $email . ' (ID: ' . $contact_id . ')');
+
+        return $contact_id;
+    }
+
+    return false;
+}
 
     /*------------------------------------------------------------
      | Getters / Setters

@@ -14,9 +14,10 @@
         <a href="<?php echo site_url($module_base_url); ?>" class="btn btn-default">
           <i class="fa fa-arrow-left"></i> Back to Courses
         </a>
+        <a href="<?php echo site_url($module_base_url . '/purchase/' . $course['id']); ?>" class="btn btn-info">
+          <i class="fa fa-play"></i> Pay Now
+        </a>
 
-        <a href="<?php echo site_url($module_base_url . '/course_videos/' . $course['id']); ?>" class="btn btn-info">
-          <i class="fa fa-play"></i> Start Learning
         </a>
       </div>
     </div>
