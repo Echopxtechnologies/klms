@@ -80,9 +80,7 @@ public function add_course()
     {
         $courses = $this->elearning_admin_model->get_course($id);
         if($courses){
-            echo "<pre>";
-            print_r($courses);
-            echo "</pre>";
+            return $courses;
         }else{
             set_alert('warning','No Course avaliable');
         }

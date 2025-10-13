@@ -135,16 +135,18 @@
                   
                   <div class="col-md-6">
                     <div class="form-group">
-                      <label class="control-label">Password (Optional)</label>
+                      <label class="control-label">
+                        <span class="text-danger">*</span> Password
+                      </label>
                       <div class="input-icon">
                         <i class="fa fa-lock"></i>
                         <input type="password" 
                                name="password" 
                                id="password"
+                               required 
                                class="form-control" 
-                               placeholder="Leave empty to auto-generate">
+                               placeholder="Enter the Password">
                       </div>
-                      <small class="help-block">Leave blank for auto-generated password</small>
                     </div>
                   </div>
                 </div>

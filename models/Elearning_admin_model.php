@@ -247,5 +247,29 @@ public function create_student_account($data, $auto_enroll_course_id = null)
         return $this->last_created_student_id;
     }
 
+    public function check_payment_status($enrollment_id)
+{
+    $enrollment = $this->db->get_where(db_prefix() . 'elearning_enrollments', [
+        'id' => $enrollment_id
+    ])->row();
+
+    if ($enrollment) {
+        if (!empty($enrollment->payment_reference)) {
+            return [
+                'status' => 'paid',
+                'transaction_id' => $enrollment->payment_reference,
+                'message' => 'Payment verified with Transaction ID: ' . $enrollment->payment_reference
+            ];
+        } else {
+            return [
+                'status' => 'unpaid',
+                'transaction_id' => null,
+                'message' => 'No payment transaction found'
+            ];
+        }
+    }
+    
+    return ['status' => 'not_found', 'message' => 'Enrollment not found'];
+}
 
 }
