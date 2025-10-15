@@ -1,44 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
-
-/**
- * Security headers
- */
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
-header('Pragma: no-cache');
-header('Expires: 0');
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: SAMEORIGIN');
-header('Referrer-Policy: same-origin');
-header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-
-/**
- * Content Security Policy
- */
-$csp = "default-src 'self'; "
-     . "img-src 'self' data: https://vumbnail.com; "
-     . "script-src 'self' 'unsafe-inline'; "
-     . "style-src 'self' 'unsafe-inline'; "
-     . "frame-ancestors 'self'; "
-     . "base-uri 'self';";
-header("Content-Security-Policy: $csp");
-
-/**
- * Build a short-lived signature for watch links to prevent IDOR
- */
-$encKey = (string) config_item('encryption_key');
-$contactId = (int) get_contact_user_id();
-$courseId  = (int) ($course['id'] ?? 0);
-
-function klms_watch_sig($encKey, $contactId, $courseId, $videoId) {
-    $ts = gmdate('Y-m-d\TH:i');
-    return hash_hmac('sha256', $contactId . '|' . $courseId . '|' . $videoId . '|' . $ts, $encKey);
-}
-
-function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
-    $sig = klms_watch_sig($encKey, $contactId, $courseId, $videoId);
-    return site_url($baseUrl . '/watch_video/' . (int)$courseId . '/' . (int)$videoId . '?sig=' . $sig);
-}
-?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Course Videos Page -->
 <div class="row">
@@ -74,18 +34,13 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
               <p class="course-description text-muted"><?php echo html_escape($course['description']); ?></p>
               <div class="course-stats">
                 <span class="stat-badge"><i class="fa fa-tag"></i> <?php echo html_escape($course['category']); ?></span>
-                <span class="stat-badge"><i class="fa fa-signal"></i> <?php echo html_escape($course['level']); ?> Level</span>
+                <span class="stat-badge"><i class="fa fa-signal"></i> <?php echo html_escape($course['level']); ?></span>
                 <span class="stat-badge"><i class="fa fa-globe"></i> <?php echo html_escape($course['language']); ?></span>
-                <span class="stat-badge"><i class="fa fa-play-circle"></i> <?php echo (int)$video_count; ?> Videos</span>
-                <?php if (!empty($course['course_duration'])): ?>
-                  <span class="stat-badge"><i class="fa fa-clock-o"></i> <?php echo html_escape($course['course_duration']); ?> Duration</span>
-                <?php elseif (!empty($total_duration)): ?>
-                  <span class="stat-badge"><i class="fa fa-clock-o"></i> <?php echo $total_duration; ?></span>
-                <?php endif; ?>
-                <?php if ($course['is_free'] == 1 || (float)$course['price'] == 0.0): ?>
+                <span class="stat-badge"><i class="fa fa-play-circle"></i> <?php echo $video_count; ?> Videos</span>
+                <?php if ($course['is_free'] == 1 || (float)$course['price'] == 0): ?>
                   <span class="stat-badge stat-badge-free"><i class="fa fa-gift"></i> FREE</span>
                 <?php else: ?>
-                  <span class="stat-badge stat-badge-paid"><i class="fa fa-money"></i> ₹<?php echo number_format((float)$course['price'], 2); ?></span>
+                  <span class="stat-badge stat-badge-paid"><i class="fa fa-money"></i> ₹<?php echo number_format($course['price'], 2); ?></span>
                 <?php endif; ?>
               </div>
             </div>
@@ -93,35 +48,25 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
             <div class="col-md-4 text-right">
               <div class="course-overview-card">
                 <div class="overview-price">
-                  <?php if ($course['is_free'] == 1 || (float)$course['price'] == 0.0): ?>
+                  <?php if ($course['is_free'] == 1 || (float)$course['price'] == 0): ?>
                     <span class="price-free">FREE COURSE</span>
                   <?php else: ?>
-                    <span class="price-paid">₹<?php echo number_format((float)$course['price'], 2); ?></span>
+                    <span class="price-paid">₹<?php echo number_format($course['price'], 2); ?></span>
                     <small class="price-label">One-time payment</small>
                   <?php endif; ?>
                 </div>
 
-                <?php if (!empty($videos)): 
-                    $firstId  = (int) $videos[0]['id'];
-                    $startUrl = klms_watch_url('klms/Lms_users', $encKey, $contactId, $courseId, $firstId);
-                ?>
-                  <a href="<?php echo $startUrl; ?>" class="btn btn-primary btn-lg btn-block">
+                <?php if (!empty($videos)): ?>
+                  <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $videos[0]['id']); ?>" 
+                     class="btn btn-primary btn-lg btn-block">
                     <i class="fa fa-play"></i> Start Learning
                   </a>
                 <?php endif; ?>
 
-                <a href="<?php echo site_url('klms/Lms_users/view_course/' . (int)$courseId); ?>" class="btn btn-default btn-block">
+                <a href="<?php echo site_url($module_base_url . '/view_course/' . $course['id']); ?>" 
+                   class="btn btn-default btn-block">
                   <i class="fa fa-arrow-left"></i> Back to Course
                 </a>
-
-                <div class="overview-details">
-                  <div class="detail-item"><i class="fa fa-signal"></i> <span><?php echo html_escape($course['level']); ?></span></div>
-                  <div class="detail-item"><i class="fa fa-globe"></i> <span><?php echo html_escape($course['language']); ?></span></div>
-                  <div class="detail-item"><i class="fa fa-play-circle"></i> <span><?php echo (int)$video_count; ?> Videos</span></div>
-                  <?php if (!empty($course['course_duration'])): ?>
-                    <div class="detail-item"><i class="fa fa-clock-o"></i> <span><?php echo html_escape($course['course_duration']); ?> Duration</span></div>
-                  <?php endif; ?>
-                </div>
               </div>
             </div>
           </div>
@@ -157,9 +102,6 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
       <div id="videos-grid" class="videos-grid">
         <?php foreach ($videos as $index => $video): ?>
           <?php
-            $vid = (int)$video['id'];
-            $watchUrl = klms_watch_url('klms/Lms_users', $encKey, $contactId, $courseId, $vid);
-
             $vimeo_id = null;
             if (!empty($video['vimeo_url'])) {
               if (preg_match('/vimeo\.com\/(\d{6,12})\b/', $video['vimeo_url'], $m)) {
@@ -171,11 +113,10 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
             <div class="video-thumbnail">
               <div class="video-thumbnail-container">
                 <?php if ($vimeo_id): ?>
-                  <img
-                    src="https://vumbnail.com/<?php echo $vimeo_id; ?>.jpg"
-                    alt="<?php echo html_escape($video['title']); ?>"
-                    class="video-thumb-image"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                  <img src="https://vumbnail.com/<?php echo $vimeo_id; ?>.jpg"
+                       alt="<?php echo html_escape($video['title']); ?>"
+                       class="video-thumb-image"
+                       onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <?php endif; ?>
 
                 <div class="video-placeholder" <?php echo $vimeo_id ? 'style="display:none;"' : ''; ?>>
@@ -185,25 +126,25 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
                 <div class="video-overlay">
                   <div class="video-number"><?php echo ($index + 1); ?></div>
                   <?php if (!empty($video['duration'])): ?>
-                    <div class="video-duration"><i class="fa fa-clock-o"></i> <?php echo html_escape($video['duration']); ?></div>
+                    <div class="video-duration">
+                      <i class="fa fa-clock-o"></i> <?php echo html_escape($video['duration']); ?>
+                    </div>
                   <?php endif; ?>
                 </div>
 
-                <div class="course-level-indicator">
-                  <span class="level-badge level-<?php echo strtolower($course['level']); ?>">
-                    <?php echo html_escape($course['level']); ?>
-                  </span>
-                </div>
-
                 <div class="video-play-btn">
-                  <a href="<?php echo $watchUrl; ?>"><i class="fa fa-play"></i></a>
+                  <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
+                    <i class="fa fa-play"></i>
+                  </a>
                 </div>
               </div>
             </div>
 
             <div class="panel-body video-info">
               <h5 class="video-title">
-                <a href="<?php echo $watchUrl; ?>"><?php echo html_escape($video['title']); ?></a>
+                <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
+                  <?php echo html_escape($video['title']); ?>
+                </a>
               </h5>
 
               <?php if (!empty($video['description'])): ?>
@@ -213,30 +154,23 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
               <?php endif; ?>
 
               <div class="video-meta">
-                <div class="meta-row">
-                  <small class="text-muted"><i class="fa fa-calendar"></i> <?php echo date('M d, Y', strtotime($video['created_at'])); ?></small>
-                  <?php if (!empty($video['sort_order'])): ?>
-                    <small class="text-muted"><i class="fa fa-sort-numeric-asc"></i> Lesson <?php echo (int)$video['sort_order']; ?></small>
-                  <?php endif; ?>
-                </div>
+                <small class="text-muted">
+                  <i class="fa fa-calendar"></i> <?php echo date('M d, Y', strtotime($video['created_at'])); ?>
+                </small>
               </div>
 
               <div class="video-actions">
-                <a href="<?php echo $watchUrl; ?>" class="btn btn-primary btn-sm">
+                <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>" 
+                   class="btn btn-primary btn-sm">
                   <i class="fa fa-play"></i> Watch Video
                 </a>
-                <?php if (!empty($video['vimeo_url'])): ?>
-                  <a href="<?php echo html_escape($video['vimeo_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-default btn-sm">
-                    <i class="fa fa-external-link"></i> Vimeo
-                  </a>
-                <?php endif; ?>
               </div>
             </div>
           </div>
         <?php endforeach; ?>
       </div>
 
-      <!-- List View (Hidden by default) -->
+      <!-- List View -->
       <div id="videos-list" class="videos-list panel_s" style="display: none;">
         <div class="panel-body">
           <div class="table-responsive">
@@ -248,7 +182,6 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
                   <th>Title</th>
                   <th>Description</th>
                   <th width="100">Duration</th>
-                  <th width="80">Lesson</th>
                   <th width="120">Created</th>
                   <th width="150">Actions</th>
                 </tr>
@@ -256,9 +189,6 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
               <tbody>
                 <?php foreach ($videos as $index => $video): ?>
                   <?php
-                    $vid = (int)$video['id'];
-                    $watchUrl = klms_watch_url('klms/Lms_users', $encKey, $contactId, $courseId, $vid);
-                    
                     $vimeo_id = null;
                     if (!empty($video['vimeo_url'])) {
                       if (preg_match('/vimeo\.com\/(\d{6,12})\b/', $video['vimeo_url'], $m)) {
@@ -284,14 +214,10 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
                     </td>
                     <td>
                       <strong>
-                        <a href="<?php echo $watchUrl; ?>">
+                        <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
                           <?php echo html_escape($video['title']); ?>
                         </a>
                       </strong>
-                      <br>
-                      <small class="text-muted">
-                        <?php echo html_escape($course['level']); ?> • <?php echo html_escape($course['language']); ?>
-                      </small>
                     </td>
                     <td>
                       <span class="text-muted">
@@ -304,18 +230,7 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
                     </td>
                     <td class="text-center">
                       <?php if (!empty($video['duration'])): ?>
-                        <span class="badge badge-info">
-                          <?php echo html_escape($video['duration']); ?>
-                        </span>
-                      <?php else: ?>
-                        <span class="text-muted">-</span>
-                      <?php endif; ?>
-                    </td>
-                    <td class="text-center">
-                      <?php if (!empty($video['sort_order'])): ?>
-                        <span class="badge badge-primary">
-                          <?php echo $video['sort_order']; ?>
-                        </span>
+                        <span class="badge badge-info"><?php echo html_escape($video['duration']); ?></span>
                       <?php else: ?>
                         <span class="text-muted">-</span>
                       <?php endif; ?>
@@ -326,16 +241,10 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
                       </small>
                     </td>
                     <td>
-                      <div class="btn-group-sm">
-                        <a href="<?php echo $watchUrl; ?>" class="btn btn-primary btn-xs">
-                          <i class="fa fa-play"></i> Watch
-                        </a>
-                        <?php if (!empty($video['vimeo_url'])): ?>
-                          <a href="<?php echo html_escape($video['vimeo_url']); ?>" target="_blank" class="btn btn-default btn-xs">
-                            <i class="fa fa-external-link"></i>
-                          </a>
-                        <?php endif; ?>
-                      </div>
+                      <a href="<?php echo site_url($module_base_url . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>" 
+                         class="btn btn-primary btn-xs">
+                        <i class="fa fa-play"></i> Watch
+                      </a>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -352,24 +261,8 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
           <i class="fa fa-video-camera fa-5x text-muted tw-mb-4"></i>
           <h3>No Videos Available</h3>
           <p class="text-muted">This course doesn't have any videos yet. Check back later!</p>
-          <div class="course-info-summary">
-            <span class="info-badge">
-              <i class="fa fa-signal"></i> <?php echo html_escape($course['level']); ?>
-            </span>
-            <span class="info-badge">
-              <i class="fa fa-globe"></i> <?php echo html_escape($course['language']); ?>
-            </span>
-            <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
-              <span class="info-badge info-badge-free">
-                <i class="fa fa-gift"></i> FREE
-              </span>
-            <?php else: ?>
-              <span class="info-badge info-badge-paid">
-                <i class="fa fa-money"></i> ₹<?php echo number_format($course['price'], 2); ?>
-              </span>
-            <?php endif; ?>
-          </div>
-          <a href="<?php echo site_url('klms/Lms_users/view_course/' . $course['id']); ?>" class="btn btn-default">
+          <a href="<?php echo site_url($module_base_url . '/view_course/' . $course['id']); ?>" 
+             class="btn btn-default">
             <i class="fa fa-arrow-left"></i> Back to Course
           </a>
         </div>
@@ -378,6 +271,8 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
 
   </div>
 </div>
+
+
 
 <!-- Custom Styles -->
 <style>
@@ -847,7 +742,7 @@ function klms_watch_url($baseUrl, $encKey, $contactId, $courseId, $videoId) {
 <!-- JavaScript -->
 <script>
 $(document).ready(function() {
-    // View toggle functionality
+    // View toggle
     $('#grid-view-btn').on('click', function() {
         $(this).addClass('active').siblings().removeClass('active');
         $('#videos-grid').show();

@@ -218,95 +218,84 @@ class Lms_users extends ClientsController
      * Watch individual video (with enrollment check)
      */
     public function watch_video($course_id = null, $video_id = null)
-    {
-        if (!is_client_logged_in()) {
-            set_alert('warning', 'Please log in to watch videos.');
-            redirect(site_url('authentication/login'));
-            return;
-        }
-
-        if (!$course_id || !$video_id || !is_numeric($course_id) || !is_numeric($video_id)) {
-            show_404();
-            return;
-        }
-        $course_id = (int)$course_id;
-        $video_id = (int)$video_id;
-
-        $contact_id = get_contact_user_id();
-        if (!$contact_id) {
-            set_alert('danger', 'Invalid session. Please log in again.');
-            redirect(site_url('authentication/login'));
-            return;
-        }
-        
-        $sig = $this->input->get('sig', true);
-
-        // Recreate current and previous-minute signatures to allow a ~60s window
-        $encKey = (string) config_item('encryption_key');
-        $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
-
-        $makeSig = function(DateTimeImmutable $t) use ($encKey, $contact_id, $course_id, $video_id) {
-            $ts = $t->format('Y-m-d\TH:i'); // minute granularity
-            return hash_hmac('sha256', $contact_id . '|' . (int)$course_id . '|' . (int)$video_id . '|' . $ts, $encKey);
-        };
-
-        $valid = hash_equals($makeSig($now), (string)$sig)
-            || hash_equals($makeSig($now->modify('-1 minute')), (string)$sig);
-
-        if (!$valid) {
-            set_alert('danger', 'Invalid or expired link. Please reopen the course and try again.');
-            redirect(site_url($this->module_base_url . '/course_videos/' . (int)$course_id));
-            return;
-        }
-
-        $course = $this->elearning_admin_model->get_course($course_id);
-        if (!$course) {
-            show_404();
-            return;
-        }
-
-        if (!$this->check_course_access($contact_id, $course_id, $course)) {
-            set_alert('warning', 'You need to purchase this course to watch videos.');
-            redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
-            return;
-        }
-
-        $video = $this->elearning_admin_model->get_video($video_id, $course_id);
-        if (!$video || (int)$video['course_id'] !== $course_id) {
-            set_alert('danger', 'Video not found or does not belong to this course.');
-            redirect(site_url($this->module_base_url . '/course_videos/' . $course_id));
-            return;
-        }
-
-        $videos = $this->elearning_admin_model->get_course_videos($course_id);
-        $total_videos = count($videos);
-        $previous_video = $this->elearning_admin_model->get_previous_video($video_id, $course_id);
-        $next_video = $this->elearning_admin_model->get_next_video($video_id, $course_id);
-
-        $current_index = 1;
-        foreach ($videos as $idx => $v) {
-            if ((int)$v['id'] === $video_id) {
-                $current_index = $idx + 1;
-                break;
-            }
-        }
-
-        $data = [
-            'title' => 'Watch: ' . html_escape($video['title']),
-            'course' => $course,
-            'video' => $video,
-            'videos' => $videos,
-            'total_videos' => $total_videos,
-            'current_index' => $current_index,
-            'previous_video' => $previous_video,
-            'next_video' => $next_video,
-            'module_base_url' => $this->module_base_url,
-        ];
-
-        $this->data($data);
-        $this->view('users/watch_video');
-        $this->layout();
+{
+    // 1. Authentication check
+    if (!is_client_logged_in()) {
+        set_alert('warning', 'Please log in to watch videos.');
+        redirect(site_url('authentication/login'));
+        return;
     }
+
+    // 2. Validate IDs
+    if (!$course_id || !$video_id || !is_numeric($course_id) || !is_numeric($video_id)) {
+        show_404();
+        return;
+    }
+    $course_id = (int)$course_id;
+    $video_id = (int)$video_id;
+
+    // 3. Get contact ID
+    $contact_id = get_contact_user_id();
+    if (!$contact_id) {
+        set_alert('danger', 'Invalid session. Please log in again.');
+        redirect(site_url('authentication/login'));
+        return;
+    }
+
+    // 4. Verify course exists
+    $course = $this->elearning_admin_model->get_course($course_id);
+    if (!$course) {
+        show_404();
+        return;
+    }
+
+    // 5. CHECK ENROLLMENT WITH PAYMENT - Critical security check
+    if (!$this->verify_course_access_with_payment($course_id, $contact_id)) {
+        set_alert('warning', 'You need to purchase this course to watch videos.');
+        redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
+        return;
+    }
+
+    // 6. Verify video exists and belongs to course
+    $video = $this->elearning_admin_model->get_video($video_id, $course_id);
+    if (!$video || (int)$video['course_id'] !== $course_id) {
+        set_alert('danger', 'Video not found or does not belong to this course.');
+        redirect(site_url($this->module_base_url . '/course_videos/' . $course_id));
+        return;
+    }
+
+    // 7. Get navigation data
+    $videos = $this->elearning_admin_model->get_course_videos($course_id);
+    $total_videos = count($videos);
+    $previous_video = $this->elearning_admin_model->get_previous_video($video_id, $course_id);
+    $next_video = $this->elearning_admin_model->get_next_video($video_id, $course_id);
+
+    // 8. Calculate current index
+    $current_index = 1;
+    foreach ($videos as $idx => $v) {
+        if ((int)$v['id'] === $video_id) {
+            $current_index = $idx + 1;
+            break;
+        }
+    }
+
+    // 9. Prepare view data
+    $data = [
+        'title' => 'Watch: ' . html_escape($video['title']),
+        'course' => $course,
+        'video' => $video,
+        'videos' => $videos,
+        'total_videos' => $total_videos,
+        'current_index' => $current_index,
+        'previous_video' => $previous_video,
+        'next_video' => $next_video,
+        'module_base_url' => $this->module_base_url,
+    ];
+
+    $this->data($data);
+    $this->view('users/watch_video');
+    $this->layout();
+}
 
     // ===================================================================
     // ENROLLMENT & PAYMENT
@@ -750,28 +739,50 @@ private function finalize_enrollment($invoice_id, $course_id, $contact_id, $paym
     /**
      * Verify course access with payment proof
      */
-    private function verify_course_access_with_payment($course_id, $student_id)
-    {
-        // Check if course is free first
-        $course = $this->elearning_admin_model->get_course($course_id);
-        if ($course && ($course['is_free'] == 1 || (float)$course['price'] <= 0)) {
-            return true; // Free courses don't need payment verification
-        }
-
-        // For paid courses, verify enrollment with payment
-        $this->db->where([
-            'student_id' => $student_id,
-            'course_id' => $course_id,
-            'payment_status' => 'paid',
-            'access_status' => 'active'
-        ]);
-        $this->db->where('payment_reference IS NOT NULL');
-        $this->db->where("payment_reference != ''");
-        
-        $enrollment = $this->db->get(db_prefix() . 'elearning_enrollments')->row();
-
-        return !empty($enrollment);
+    /**
+ * Verify course access with payment proof (with debugging)
+ */
+private function verify_course_access_with_payment($course_id, $student_id)
+{
+    // Check if course is free first
+    $course = $this->elearning_admin_model->get_course($course_id);
+    if ($course && ($course['is_free'] == 1 || (float)$course['price'] <= 0)) {
+        return true; // Free courses always accessible
     }
+
+    // For paid courses, verify enrollment with payment
+    $this->db->where([
+        'student_id' => $student_id,
+        'course_id' => $course_id,
+    ]);
+    
+    $enrollment = $this->db->get(db_prefix() . 'elearning_enrollments')->row();
+
+    if (!$enrollment) {
+        log_activity('Access denied - No enrollment: Student ' . $student_id . ' - Course ' . $course_id);
+        return false;
+    }
+    
+    // Check payment status
+    if ($enrollment->payment_status !== 'paid') {
+        log_activity('Access denied - Payment pending: Student ' . $student_id . ' - Course ' . $course_id . ' - Status: ' . $enrollment->payment_status);
+        return false;
+    }
+    
+    // Check access status
+    if ($enrollment->access_status !== 'active') {
+        log_activity('Access denied - Not active: Student ' . $student_id . ' - Course ' . $course_id . ' - Status: ' . $enrollment->access_status);
+        return false;
+    }
+    
+    // Check payment reference exists
+    if (empty($enrollment->payment_reference)) {
+        log_activity('Access denied - No payment reference: Student ' . $student_id . ' - Course ' . $course_id);
+        return false;
+    }
+    
+    return true; // All checks passed
+}
 
     // ===================================================================
     // REGISTRATION

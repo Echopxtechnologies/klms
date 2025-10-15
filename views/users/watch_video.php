@@ -19,6 +19,7 @@
                         <?php if ($vimeo_id && ctype_digit($vimeo_id)): ?>
                             <div class="video-embed-container">
                                 <iframe 
+                                    id="vimeo-player"
                                     src="https://player.vimeo.com/video/<?php echo html_escape($vimeo_id); ?>?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479&amp;quality=auto" 
                                     frameborder="0" 
                                     allow="autoplay; fullscreen; picture-in-picture; clipboard-write" 
@@ -31,15 +32,15 @@
                         <?php else: ?>
                             <div class="video-error">
                                 <i class="fa fa-exclamation-triangle fa-3x text-warning"></i>
-                                <h4><?php echo _l('video_not_available'); ?></h4>
-                                <p><?php echo _l('video_load_error'); ?></p>
+                                <h4>Video Not Available</h4>
+                                <p>Unable to load video. Please check the video URL or contact support.</p>
                             </div>
                         <?php endif; ?>
                     <?php else: ?>
                         <div class="video-placeholder">
                             <i class="fa fa-video-camera fa-5x text-muted"></i>
-                            <h4><?php echo _l('no_video_available'); ?></h4>
-                            <p><?php echo _l('video_not_configured'); ?></p>
+                            <h4>No Video Available</h4>
+                            <p>This lesson does not have a video configured yet.</p>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -75,7 +76,7 @@
 
                     <?php if (!empty($video['description'])): ?>
                         <div class="video-description">
-                            <h4><?php echo _l('description'); ?></h4>
+                            <h4>Description</h4>
                             <div class="description-content">
                                 <?php echo nl2br(html_escape($video['description'])); ?>
                             </div>
@@ -107,6 +108,7 @@
                             <?php if ($next_video): ?>
                                 <a href="<?php echo site_url($module_base_url . '/watch_video/' . (int)$course['id'] . '/' . (int)$next_video['id']); ?>" 
                                    class="btn btn-primary btn-nav btn-next"
+                                   id="next-video-btn"
                                    title="<?php echo html_escape($next_video['title']); ?>">
                                     <span class="nav-text">
                                         <small>Next</small>
@@ -115,11 +117,12 @@
                                     <i class="fa fa-chevron-right"></i>
                                 </a>
                             <?php else: ?>
-                                <div class="btn btn-default btn-nav btn-disabled">
+                                <div class="btn btn-success btn-nav btn-disabled">
+                                    <i class="fa fa-trophy"></i>
                                     <span class="nav-text">
-                                        <small>Course Complete</small>
+                                        <small>Course Complete!</small>
+                                        <strong>You've finished all videos</strong>
                                     </span>
-                                    <i class="fa fa-check"></i>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -144,38 +147,40 @@
                         <i class="fa fa-tag"></i>
                         <?php echo html_escape($course['category']); ?>
                     </div>
+                    
                     <div class="enrollment-status">
                         <div class="status-badge status-active">
                             <i class="fa fa-check-circle"></i> Enrolled & Active
                         </div>
                         <small class="text-muted">
-                            Access granted on <?php echo date('M d, Y', strtotime($course['enrolled_date'] ?? date('Y-m-d'))); ?>
+                            Access granted
                         </small>
                     </div>
 
-                    <!-- Course Progress -->
+                    <!-- Course Progress with Real-time Updates -->
                     <div class="course-progress-section">
                         <div class="progress-header">
                             <span class="progress-label">Your Progress</span>
-                            <span class="progress-percentage"><?php echo round(((int)$current_index / (int)$total_videos) * 100); ?>%</span>
+                            <span class="progress-percentage" id="progress-percentage">0%</span>
                         </div>
                         <div class="progress">
                             <div class="progress-bar progress-bar-success" 
+                                 id="course-progress-bar"
                                  role="progressbar"
-                                 aria-valuenow="<?php echo round(((int)$current_index / (int)$total_videos) * 100); ?>"
+                                 aria-valuenow="0"
                                  aria-valuemin="0" 
                                  aria-valuemax="100"
-                                 style="width: <?php echo round(((int)$current_index / (int)$total_videos) * 100); ?>%">
+                                 style="width: 0%">
                             </div>
                         </div>
                         <div class="progress-stats">
-                            <span><?php echo (int)$current_index; ?> of <?php echo (int)$total_videos; ?> videos completed</span>
+                            <span id="progress-stats">Loading progress...</span>
                         </div>
                     </div>
                     
                     <!-- Quick Actions -->
                     <div class="course-quick-actions">
-                        <a href="<?php echo site_url($module_base_url . '/view_course/' . (int)$course['id']); ?>" 
+                        <a href="<?php echo site_url($module_base_url . '/course_videos/' . (int)$course['id']); ?>" 
                            class="btn btn-default btn-block btn-sm">
                             <i class="fa fa-arrow-left"></i> Back to Course
                         </a>
@@ -219,11 +224,9 @@
                                         <?php endif; ?>
                                     </div>
                                     
-                                    <?php if ($index < (int)$current_index - 1): ?>
-                                        <div class="playlist-status">
-                                            <i class="fa fa-check-circle text-success"></i>
-                                        </div>
-                                    <?php endif; ?>
+                                    <div class="playlist-status" data-video-id="<?php echo (int)$playlist_video['id']; ?>">
+                                        <!-- Will be updated by JavaScript -->
+                                    </div>
                                 </a>
                             </div>
                         <?php endforeach; ?>
@@ -399,7 +402,7 @@
     text-decoration: none;
 }
 
-.btn-nav:hover {
+.btn-nav:hover:not(.btn-disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     text-decoration: none;
@@ -764,84 +767,230 @@
     }
 }
 
-/* Print styles */
-@media print {
-    .course-sidebar,
-    .video-navigation {
-        display: none;
-    }
+/* Loading animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 </style>
 
-<!-- Enhanced JavaScript -->
+<!-- Enhanced JavaScript with Video Progress Tracking -->
 <script>
 (function() {
     'use strict';
     
+    // Global variables
+    var vimeoPlayer = null;
+    var progressMarked = false;
+    var progressCheckInterval = null;
+    var currentVideoId = <?php echo (int)$video['id']; ?>;
+    var currentCourseId = <?php echo (int)$course['id']; ?>;
+    var videoDuration = 0;
+    var lastSavedTime = 0;
+    
     $(document).ready(function() {
-        // Initialize video player
+        // Initialize components
         initializeVideoPlayer();
-        
-        // Keyboard navigation
         initializeKeyboardNavigation();
-        
-        // Scroll to active video in playlist
         scrollToActiveVideo();
+        loadCourseProgress();
         
-        // Smooth scroll on navigation
-        smoothScrollTop();
+        // Save progress before leaving page
+        $(window).on('beforeunload', function() {
+            if (vimeoPlayer) {
+                saveVideoProgress(true);
+            }
+        });
     });
     
     /**
-     * Initialize Vimeo player with tracking
+     * Initialize Vimeo player with progress tracking
      */
     function initializeVideoPlayer() {
-        const iframe = document.querySelector('.video-embed-container iframe');
-        if (!iframe || typeof Vimeo === 'undefined') return;
+        const iframe = document.getElementById('vimeo-player');
+        if (!iframe || typeof Vimeo === 'undefined') {
+            console.log('Vimeo player not available');
+            return;
+        }
         
         try {
-            const player = new Vimeo.Player(iframe);
+            vimeoPlayer = new Vimeo.Player(iframe);
             
-            // Track video progress (optional - implement your tracking logic)
-            player.on('timeupdate', function(data) {
-                // You can send AJAX requests to track progress
-                // console.log('Video progress:', data.percent);
-                if (data.percent > 0.9 && !progressMarked) {
-                    progressMarked = true;
-                    markVideoAsWatched();
-                }
+            // Get video duration
+            vimeoPlayer.getDuration().then(function(duration) {
+                videoDuration = Math.floor(duration);
+                console.log('Video duration:', videoDuration, 'seconds');
             });
             
-            player.on('ended', function() {
+            // Track every 10 seconds
+            progressCheckInterval = setInterval(function() {
+                saveVideoProgress(false);
+            }, 10000);
+            
+            // Track when video ends
+            vimeoPlayer.on('ended', function() {
+                console.log('Video ended');
+                clearInterval(progressCheckInterval);
+                saveVideoProgress(true);
+                
+                // Mark as completed
                 if (!progressMarked) {
-                    markVideoAsWatched();
+                    progressMarked = true;
+                    markVideoAsCompleted();
                 }
                 
                 <?php if ($next_video): ?>
-                // Optional: Auto-play next video
-                // setTimeout(function() {
-                //     window.location.href = '<?php echo site_url($module_base_url . '/watch_video/' . (int)$course['id'] . '/' . (int)$next_video['id']); ?>';
-                // }, 2000);
+                // Show next video notification
+                showNextVideoNotification();
                 <?php endif; ?>
             });
             
+            // Track when user watches 90%
+            vimeoPlayer.on('timeupdate', function(data) {
+                if (data.percent >= 0.9 && !progressMarked) {
+                    progressMarked = true;
+                    markVideoAsCompleted();
+                }
+            });
+            
+            // Track when video plays
+            vimeoPlayer.on('play', function() {
+                console.log('Video playing');
+            });
+            
+            // Track when video pauses
+            vimeoPlayer.on('pause', function() {
+                saveVideoProgress(false);
+            });
+            
         } catch (error) {
-            console.error('Vimeo player initialization error:', error);
+            console.error('Vimeo player error:', error);
         }
     }
-    function markVideoAsWatched() {
+    
+    /**
+     * Save video progress
+     */
+    function saveVideoProgress(isSync) {
+        if (!vimeoPlayer) return;
+        
+        vimeoPlayer.getCurrentTime().then(function(currentTime) {
+            var watchTime = Math.floor(currentTime);
+            
+            // Don't save if same as last saved time
+            if (watchTime === lastSavedTime && !isSync) {
+                return;
+            }
+            
+            lastSavedTime = watchTime;
+            
+            $.ajax({
+                url: '<?php echo site_url($module_base_url . "/mark_video_watched"); ?>',
+                type: 'POST',
+                async: !isSync,
+                data: {
+                    course_id: currentCourseId,
+                    video_id: currentVideoId,
+                    watch_time: watchTime,
+                    total_duration: videoDuration,
+                    <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
+                },
+                success: function(response) {
+                    console.log('Progress saved:', watchTime, '/', videoDuration, 'seconds');
+                    
+                    if (response.success && response.course_progress) {
+                        updateCourseProgress(response.course_progress);
+                    }
+                },
+                error: function() {
+                    console.error('Failed to save progress');
+                }
+            });
+        });
+    }
+    
+    /**
+     * Mark video as completed (90%+ watched)
+     */
+    function markVideoAsCompleted() {
+        console.log('Marking video as completed');
+        
+        // Visual feedback
+        var $currentPlaylistItem = $('.playlist-item[data-video-id="' + currentVideoId + '"]');
+        $currentPlaylistItem.find('.playlist-status').html('<i class="fa fa-check-circle text-success"></i>');
+        
+        // Force save with completion flag
+        saveVideoProgress(true);
+    }
+    
+    /**
+     * Load and update course progress
+     */
+    function loadCourseProgress() {
         $.ajax({
-            url: '<?php echo admin_url("klms/mark_video_watched"); ?>',
-            type: 'POST',
-            data: {
-                course_id: <?php echo (int)$course['id']; ?>,
-                video_id: <?php echo (int)$video['id']; ?>,
-                <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
-            },
+            url: '<?php echo site_url($module_base_url . "/get_course_progress/" . (int)$course["id"]); ?>',
+            type: 'GET',
+            dataType: 'json',
             success: function(response) {
-                console.log('Video progress saved');
+                if (response.success && response.progress) {
+                    updateCourseProgress(response.progress);
+                    updatePlaylistStatus(response.video_progress);
+                }
             }
         });
+    }
+    
+    /**
+     * Update course progress display
+     */
+    function updateCourseProgress(progress) {
+        var percentage = parseFloat(progress.progress_percentage) || 0;
+        var completed = parseInt(progress.completed_videos) || 0;
+        var total = parseInt(progress.total_videos) || <?php echo (int)$total_videos; ?>;
+        
+        $('#course-progress-bar').css('width', percentage + '%').attr('aria-valuenow', percentage);
+        $('#progress-percentage').text(Math.round(percentage) + '%');
+        $('#progress-stats').text(completed + ' of ' + total + ' videos completed');
+    }
+    
+    /**
+     * Update playlist video status icons
+     */
+    function updatePlaylistStatus(videoProgress) {
+        if (!videoProgress || !Array.isArray(videoProgress)) return;
+        
+        videoProgress.forEach(function(progress) {
+            var $item = $('.playlist-status[data-video-id="' + progress.video_id + '"]');
+            if (progress.completed == 1) {
+                $item.html('<i class="fa fa-check-circle text-success"></i>');
+            }
+        });
+    }
+    
+    /**
+     * Show next video notification
+     */
+    function showNextVideoNotification() {
+        <?php if ($next_video): ?>
+        var $nextBtn = $('#next-video-btn');
+        $nextBtn.addClass('btn-success').removeClass('btn-primary');
+        $nextBtn.find('small').text('Up Next');
+        
+        // Optional: Auto-redirect after 3 seconds
+        // setTimeout(function() {
+        //     window.location.href = $nextBtn.attr('href');
+        // }, 3000);
+        <?php endif; ?>
     }
     
     /**
@@ -849,11 +998,9 @@
      */
     function initializeKeyboardNavigation() {
         $(document).on('keydown', function(e) {
-            // Ignore if user is typing in input/textarea
             if ($(e.target).is('input, textarea')) return;
             
             <?php if ($previous_video): ?>
-            // Left arrow - Previous video
             if (e.key === 'ArrowLeft' || e.keyCode === 37) {
                 e.preventDefault();
                 window.location.href = '<?php echo site_url($module_base_url . '/watch_video/' . (int)$course['id'] . '/' . (int)$previous_video['id']); ?>';
@@ -861,12 +1008,25 @@
             <?php endif; ?>
             
             <?php if ($next_video): ?>
-            // Right arrow - Next video
             if (e.key === 'ArrowRight' || e.keyCode === 39) {
                 e.preventDefault();
                 window.location.href = '<?php echo site_url($module_base_url . '/watch_video/' . (int)$course['id'] . '/' . (int)$next_video['id']); ?>';
             }
             <?php endif; ?>
+            
+            // Space = play/pause
+            if (e.key === ' ' || e.keyCode === 32) {
+                e.preventDefault();
+                if (vimeoPlayer) {
+                    vimeoPlayer.getPaused().then(function(paused) {
+                        if (paused) {
+                            vimeoPlayer.play();
+                        } else {
+                            vimeoPlayer.pause();
+                        }
+                    });
+                }
+            }
         });
     }
     
@@ -874,20 +1034,13 @@
      * Scroll to active video in playlist
      */
     function scrollToActiveVideo() {
-        const $activeItem = $('.playlist-item.active');
-        const $playlist = $('.videos-playlist');
+        var $activeItem = $('.playlist-item.active');
+        var $playlist = $('.videos-playlist');
         
         if ($activeItem.length && $playlist.length) {
-            const scrollTo = $activeItem.position().top + $playlist.scrollTop() - 100;
+            var scrollTo = $activeItem.position().top + $playlist.scrollTop() - 100;
             $playlist.animate({ scrollTop: scrollTo }, 500);
         }
-    }
-    
-    /**
-     * Smooth scroll to top
-     */
-    function smoothScrollTop() {
-        $('html, body').animate({ scrollTop: 0 }, 400);
     }
     
 })();

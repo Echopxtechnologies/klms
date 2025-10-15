@@ -1,30 +1,41 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
-// Derived flags
-$price    = isset($course['price']) ? (float)$course['price'] : 0.0;
-$is_free  = !empty($course['is_free']) || $price <= 0.0;
-$is_paid  = !$is_free;
+// Determine access and pricing
+$price = isset($course['price']) ? (float)$course['price'] : 0.0;
+$is_free = !empty($course['is_free']) || $price <= 0.0;
+$is_paid = !$is_free;
 
-// If the controller passed $can_watch use it, else default:
-// free courses = true, paid = false (until enrolled)
-if (!isset($can_watch)) {
-    $can_watch = $is_free ? true : false;
+// Check if user can access the course
+$can_access = false;
+$enrollment_status = null;
+
+if (is_client_logged_in()) {
+    $contact_id = get_contact_user_id();
+    $CI =& get_instance();
+    
+    // Check enrollment status
+    $CI->db->where([
+        'student_id' => $contact_id,
+        'course_id' => $course['id']
+    ]);
+    $enrollment_status = $CI->db->get(db_prefix() . 'elearning_enrollments')->row();
+    
+    // Determine access
+    if ($is_free) {
+        $can_access = true; // Free courses always accessible when logged in
+    } elseif ($enrollment_status) {
+        // Check if enrollment is valid
+        if ($enrollment_status->payment_status === 'paid' && 
+            $enrollment_status->access_status === 'active' && 
+            !empty($enrollment_status->payment_reference)) {
+            $can_access = true;
+        }
+    }
 }
-// Helpful URLs (respect login state)
-$base = 'klms/lms_users';
 
-$urls = [
-    'details'      => site_url($base . '/view_course/'   . $course['id']),
-    'watch_first'  => site_url($base . '/course_videos/' . $course['id']),
-    'purchase'     => site_url($base . '/purchase/'      . $course['id']),      // for logged-in clients
-    'registration' => site_url($base . '/registration/'  . $course['id']),      // for guests
-    'login_back'   => site_url('authentication/login?redirect_to=' . urlencode(site_url($base . '/view_course/' . $course['id']))),
-];
-
-// Safer cover image existence check (filesystem path)
-$cover_rel = !empty($course['cover_image']) ? ltrim($course['cover_image'], '/') : '';
-$cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
+// URLs
+$module_base = 'klms/lms_users';
 ?>
 
 <!-- Course Detail Page -->
@@ -34,6 +45,11 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
         <!-- Course Hero Section -->
         <div class="course-hero panel_s">
             <div class="course-hero-content">
+                <?php 
+                $cover_rel = !empty($course['cover_image']) ? ltrim($course['cover_image'], '/') : '';
+                $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
+                ?>
+                
                 <?php if ($cover_rel && is_file($cover_abs)): ?>
                     <div class="course-hero-image">
                         <img src="<?php echo base_url($cover_rel); ?>" 
@@ -44,15 +60,13 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                                 <i class="fa fa-tag"></i> <?php echo html_escape($course['category']); ?>
                             </div>
                             <div class="course-badges-top">
-                                <!-- Price Badge -->
                                 <div class="price-badge">
-                                    <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                    <?php if ($is_free): ?>
                                         <span class="price-free">FREE</span>
                                     <?php else: ?>
-                                        <span class="price-paid">$<?php echo number_format($course['price'], 2); ?></span>
+                                        <span class="price-paid">₹<?php echo number_format($price, 2); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <!-- Level Badge -->
                                 <div class="level-badge">
                                     <span class="level-<?php echo strtolower($course['level']); ?>">
                                         <?php echo html_escape($course['level']); ?>
@@ -68,15 +82,13 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                             <i class="fa fa-tag"></i> <?php echo html_escape($course['category']); ?>
                         </div>
                         <div class="course-badges-top">
-                            <!-- Price Badge -->
                             <div class="price-badge">
-                                <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                                <?php if ($is_free): ?>
                                     <span class="price-free">FREE</span>
                                 <?php else: ?>
-                                    <span class="price-paid">₹<?php echo number_format($course['price'], 2); ?></span>
+                                    <span class="price-paid">₹<?php echo number_format($price, 2); ?></span>
                                 <?php endif; ?>
                             </div>
-                            <!-- Level Badge -->
                             <div class="level-badge">
                                 <span class="level-<?php echo strtolower($course['level']); ?>">
                                     <?php echo html_escape($course['level']); ?>
@@ -134,41 +146,39 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                             <i class="fa fa-globe text-muted"></i>
                             <span><?php echo html_escape($course['language']); ?></span>
                         </div>
-                        <?php if (!empty($course['updated_at']) && $course['updated_at'] !== $course['created_at']): ?>
-                        <div class="meta-item">
-                            <i class="fa fa-refresh text-muted"></i>
-                            <span>Updated <?php echo date('M d, Y', strtotime($course['updated_at'])); ?></span>
-                        </div>
-                        <?php endif; ?>
                     </div>
 
-                    <!-- Course Highlights -->
-                    <div class="course-highlights">
-                        <div class="highlight-item">
-                            <i class="fa fa-money text-success"></i>
-                            <span>
-                                <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
-                                    <strong class="text-success">Free Course</strong>
-                                <?php else: ?>
-                                    <strong class="text-warning">Paid Course - $<?php echo number_format($course['price'], 2); ?></strong>
-                                <?php endif; ?>
-                            </span>
-                        </div>
-                        <div class="highlight-item">
-                            <i class="fa fa-users text-info"></i>
-                            <span><strong><?php echo html_escape($course['level']); ?></strong> Level</span>
-                        </div>
-                        <div class="highlight-item">
-                            <i class="fa fa-globe text-primary"></i>
-                            <span>Available in <strong><?php echo html_escape($course['language']); ?></strong></span>
-                        </div>
-                        <?php if (!empty($course['course_duration'])): ?>
-                        <div class="highlight-item">
-                            <i class="fa fa-clock-o text-warning"></i>
-                            <span>Duration: <strong><?php echo html_escape($course['course_duration']); ?></strong></span>
-                        </div>
+                    <!-- Access Status Alert -->
+                    <?php if (is_client_logged_in()): ?>
+                        <?php if ($can_access): ?>
+                            <div class="alert alert-success" style="margin-top: 15px;">
+                                <i class="fa fa-check-circle"></i>
+                                <strong>You have access to this course!</strong> Start learning now.
+                            </div>
+                        <?php elseif ($is_paid && $enrollment_status): ?>
+                            <?php if ($enrollment_status->payment_status !== 'paid'): ?>
+                                <div class="alert alert-warning" style="margin-top: 15px;">
+                                    <i class="fa fa-exclamation-triangle"></i>
+                                    <strong>Payment Pending:</strong> Complete your payment to access this course.
+                                </div>
+                            <?php elseif (empty($enrollment_status->payment_reference)): ?>
+                                <div class="alert alert-warning" style="margin-top: 15px;">
+                                    <i class="fa fa-exclamation-triangle"></i>
+                                    <strong>Payment Verification:</strong> Your payment is being verified. Contact support if this takes too long.
+                                </div>
+                            <?php endif; ?>
+                        <?php elseif ($is_paid): ?>
+                            <div class="alert alert-info" style="margin-top: 15px;">
+                                <i class="fa fa-lock"></i>
+                                <strong>Purchase Required:</strong> Buy this course to get lifetime access.
+                            </div>
                         <?php endif; ?>
-                    </div>
+                    <?php else: ?>
+                        <div class="alert alert-info" style="margin-top: 15px;">
+                            <i class="fa fa-sign-in"></i>
+                            <strong>Login Required:</strong> Please log in to access this course.
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <hr>
@@ -186,31 +196,22 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                     <div class="curriculum-header">
                         <h3>Course Content</h3>
                         <p class="text-muted">
-                            <?php echo $video_count; ?> videos
-                            <?php if (!empty($course['course_duration'])): ?>
-                                • Total duration: <?php echo html_escape($course['course_duration']); ?>
-                            <?php elseif (!empty($total_duration)): ?>
-                                • Total duration: <?php echo $total_duration; ?>
-                            <?php endif; ?>
+                            <?php echo $video_count; ?> videos • 
+                            <?php echo !empty($course['course_duration']) ? html_escape($course['course_duration']) : $total_duration; ?>
                         </p>
                     </div>
 
                     <?php if (!empty($videos)): ?>
                         <div class="video-list">
-                            <?php foreach ($videos as $index => $video): ?>
+                            <?php foreach (array_slice($videos, 0, 5) as $index => $video): ?>
                                 <div class="video-item">
                                     <div class="video-item-content">
                                         <div class="video-number">
                                             <span class="video-index"><?php echo ($index + 1); ?></span>
-                                            <i class="fa fa-play-circle-o video-play-icon"></i>
                                         </div>
                                         
                                         <div class="video-info">
-                                            <h5 class="video-title">
-                                                <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>">
-                                                    <?php echo html_escape($video['title']); ?>
-                                                </a>
-                                            </h5>
+                                            <h5 class="video-title"><?php echo html_escape($video['title']); ?></h5>
                                             <?php if (!empty($video['description'])): ?>
                                                 <p class="video-description">
                                                     <?php echo html_escape(substr($video['description'], 0, 100)); ?>
@@ -227,45 +228,27 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                                                 </span>
                                             <?php endif; ?>
                                             
-                                            <?php if ($can_watch): ?>
-                                            <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>"
-                                                class="btn btn-sm btn-primary">
-                                                <i class="fa fa-play"></i> Watch
-                                            </a>
-
-                                            <?php elseif ($is_paid): ?>
-                                            <?php if (is_client_logged_in()): ?>
-                                                <a href="<?php echo $urls['purchase']; ?>" class="btn btn-sm btn-warning">
-                                                <i class="fa fa-lock"></i> Buy / Enroll
+                                            <?php if ($can_access): ?>
+                                                <a href="<?php echo site_url($module_base . '/watch_video/' . $course['id'] . '/' . $video['id']); ?>"
+                                                   class="btn btn-sm btn-primary">
+                                                    <i class="fa fa-play"></i> Watch
                                                 </a>
                                             <?php else: ?>
-                                                <a href="<?php echo $urls['login_back']; ?>" class="btn btn-sm btn-warning">
-                                                <i class="fa fa-sign-in"></i> Login to Buy
-                                                </a>
+                                                <button class="btn btn-sm btn-default" disabled>
+                                                    <i class="fa fa-lock"></i> Locked
+                                                </button>
                                             <?php endif; ?>
-
-                                            <?php else: ?>
-                                            <!-- Free course -->
-                                            <a href="<?php echo site_url('klms/lms_users/watch_video/' . $course['id'] . '/' . $video['id']); ?>"
-                                                class="btn btn-sm btn-primary">
-                                                <i class="fa fa-play"></i> Watch
-                                            </a>
-                                            <?php endif; ?>
-
-
                                         </div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
 
-                        <!-- View All Videos Button -->
-                        <div class="text-center tw-mt-6">
-                            <a href="<?php echo site_url('klms/lms_users/course_videos/' . $course['id']); ?>" 
-                               class="btn btn-info btn-lg">
-                                <i class="fa fa-list"></i> View All Videos
-                            </a>
-                        </div>
+                        <?php if (count($videos) > 5): ?>
+                            <div class="text-center tw-mt-6">
+                                <p class="text-muted">And <?php echo count($videos) - 5; ?> more videos...</p>
+                            </div>
+                        <?php endif; ?>
                     <?php else: ?>
                         <div class="no-videos text-center">
                             <i class="fa fa-video-camera fa-3x text-muted"></i>
@@ -285,64 +268,63 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
             <div class="panel-body text-center">
                 <!-- Course Price Display -->
                 <div class="course-price-display">
-                    <?php if ($course['is_free'] == 1 || $course['price'] == 0): ?>
+                    <?php if ($is_free): ?>
                         <div class="price-free-large">
                             <i class="fa fa-gift"></i>
                             <span>FREE COURSE</span>
                         </div>
                     <?php else: ?>
                         <div class="price-paid-large">
-                            <div class="price-amount">₹<?php echo number_format($course['price'], 2); ?></div>
+                            <div class="price-amount">₹<?php echo number_format($price, 2); ?></div>
                             <div class="price-label">One-time payment</div>
                         </div>
                     <?php endif; ?>
                 </div>
 
-                <h4 class="tw-mb-4">Start Learning</h4>
-
-                <?php if ($can_watch): ?>
-                <a href="<?php echo $urls['watch_first']; ?>"
-                    class="btn btn-primary btn-lg btn-block tw-mb-3">
-                    <i class="fa fa-play"></i> Start Course
-                </a>
-
-                <?php elseif ($is_paid): ?>
-                <?php if (is_client_logged_in()): ?>
-                    <a href="<?php echo $urls['purchase']; ?>"
-                    class="btn btn-warning btn-lg btn-block tw-mb-3">
-                    <i class="fa fa-shopping-cart"></i> Buy / Enroll
+                <!-- Action Buttons -->
+                <?php if (!is_client_logged_in()): ?>
+                    <!-- Not Logged In -->
+                    <a href="<?php echo site_url('authentication/login?redirect=' . urlencode(current_url())); ?>"
+                       class="btn btn-primary btn-lg btn-block tw-mb-3">
+                        <i class="fa fa-sign-in"></i> Login to Access
                     </a>
+                    <a href="<?php echo site_url($module_base . '/registration/' . $course['id']); ?>"
+                       class="btn btn-default btn-block tw-mb-3">
+                        <i class="fa fa-user-plus"></i> Register Now
+                    </a>
+                    
+                <?php elseif ($can_access): ?>
+                    <!-- Has Access -->
+                    <a href="<?php echo site_url($module_base . '/course_videos/' . $course['id']); ?>"
+                       class="btn btn-success btn-lg btn-block tw-mb-3">
+                        <i class="fa fa-play-circle"></i> Start Learning
+                    </a>
+                    
+                <?php elseif ($is_free): ?>
+                    <!-- Free Course - Enroll -->
+                    <a href="<?php echo site_url($module_base . '/purchase/' . $course['id']); ?>"
+                       class="btn btn-success btn-lg btn-block tw-mb-3">
+                        <i class="fa fa-check"></i> Enroll for Free
+                    </a>
+                    
+                <?php elseif ($enrollment_status && $enrollment_status->payment_status !== 'paid'): ?>
+                    <!-- Has Enrollment but Payment Pending -->
+                    <a href="<?php echo site_url($module_base . '/purchase/' . $course['id']); ?>"
+                       class="btn btn-warning btn-lg btn-block tw-mb-3">
+                        <i class="fa fa-credit-card"></i> Complete Payment
+                    </a>
+                    <p class="text-warning text-center">
+                        <small><i class="fa fa-exclamation-circle"></i> Payment verification pending</small>
+                    </p>
+                    
                 <?php else: ?>
-                    <a href="<?php echo $urls['login_back']; ?>"
-                    class="btn btn-warning btn-lg btn-block tw-mb-3">
-                    <i class="fa fa-sign-in"></i> Login to Buy
-                    </a>
-                    <a href="<?php echo $urls['registration']; ?>"
-                    class="btn btn-default btn-block tw-mb-3">
-                    <i class="fa fa-user-plus"></i> New here? Register
+                    <!-- Paid Course - Purchase -->
+                    <a href="<?php echo site_url($module_base . '/purchase/' . $course['id']); ?>"
+                       class="btn btn-primary btn-lg btn-block tw-mb-3">
+                        <i class="fa fa-shopping-cart"></i> Buy Now - ₹<?php echo number_format($price, 2); ?>
                     </a>
                 <?php endif; ?>
-
-                <?php else: ?>
-                <!-- Free course & not enrolled (still allowed) -->
-                <a href="<?php echo $urls['watch_first']; ?>"
-                    class="btn btn-primary btn-lg btn-block tw-mb-3">
-                    <i class="fa fa-play"></i> Start Course
-                </a>
-                <?php endif; ?>
-
-
-
                 
-                <a href="<?php echo site_url('klms/lms_users/course_videos/' . $course['id']); ?>" 
-                   class="btn btn-default btn-block tw-mb-3">
-                    <i class="fa fa-list"></i> View All Videos
-                </a>
-                
-                <button class="btn btn-success btn-block" onclick="addToFavorites(<?php echo $course['id']; ?>)">
-                    <i class="fa fa-heart-o"></i> Add to Favorites
-                </button>
-
                 <hr>
                 
                 <!-- Course Stats -->
@@ -387,22 +369,10 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                             <i class="fa fa-tag"></i>
                             <span>Category: <strong><?php echo html_escape($course['category']); ?></strong></span>
                         </li>
-                        <?php if (!empty($course['course_duration'])): ?>
-                        <li>
-                            <i class="fa fa-clock-o"></i>
-                            <span>Duration: <strong><?php echo html_escape($course['course_duration']); ?></strong></span>
-                        </li>
-                        <?php endif; ?>
                         <li>
                             <i class="fa fa-calendar"></i>
                             <span>Created: <strong><?php echo date('M Y', strtotime($course['created_at'])); ?></strong></span>
                         </li>
-                        <?php if (!empty($course['updated_at']) && $course['updated_at'] !== $course['created_at']): ?>
-                        <li>
-                            <i class="fa fa-refresh"></i>
-                            <span>Updated: <strong><?php echo date('M Y', strtotime($course['updated_at'])); ?></strong></span>
-                        </li>
-                        <?php endif; ?>
                     </ul>
                 </div>
             </div>
@@ -417,19 +387,14 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                     <?php foreach ($related_courses as $related): ?>
                         <div class="related-course-item">
                             <div class="related-course-image">
-                                <?php if (!empty($related['cover_image']) && file_exists($related['cover_image'])): ?>
-                                    <img src="<?php echo base_url($related['cover_image']); ?>" 
-                                         alt="<?php echo html_escape($related['title']); ?>">
-                                <?php else: ?>
-                                    <div class="related-course-placeholder">
-                                        <i class="fa fa-graduation-cap"></i>
-                                    </div>
-                                <?php endif; ?>
+                                <div class="related-course-placeholder">
+                                    <i class="fa fa-graduation-cap"></i>
+                                </div>
                             </div>
                             
                             <div class="related-course-info">
                                 <h6>
-                                    <a href="<?php echo site_url('klms/lms_users/view_course/' . $related['id']); ?>">
+                                    <a href="<?php echo site_url($module_base . '/view_course/' . $related['id']); ?>">
                                         <?php echo html_escape($related['title']); ?>
                                     </a>
                                 </h6>
@@ -440,7 +405,7 @@ $cover_abs = $cover_rel ? FCPATH . $cover_rel : '';
                                     <?php if ($related['is_free'] == 1 || $related['price'] == 0): ?>
                                         <span class="price-tag-free">FREE</span>
                                     <?php else: ?>
-                                        <span class="price-tag-paid">$<?php echo number_format($related['price'], 2); ?></span>
+                                        <span class="price-tag-paid">₹<?php echo number_format($related['price'], 2); ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>

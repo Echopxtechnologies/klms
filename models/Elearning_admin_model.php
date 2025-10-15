@@ -234,6 +234,305 @@ public function create_student_account($data, $auto_enroll_course_id = null)
     return false;
 }
 
+/**
+ * Get single student by ID
+ * 
+ * @param int $student_id Contact ID
+ * @return object|null Student data
+ */
+public function get_student($student_id)
+{
+    return $this->db->select('*')
+                    ->from(db_prefix() . 'contacts')
+                    ->where('id', $student_id)
+                    ->get()
+                    ->row();
+}
+
+/**
+ * Update student information
+ * 
+ * @param int $student_id Contact ID
+ * @param array $data Update data
+ * @return bool Success status
+ */
+public function update_student($student_id, $data)
+{
+    // Validate required fields
+    if (empty($data['firstname']) || empty($data['lastname']) || empty($data['email'])) {
+        return false;
+    }
+
+    // Normalize email
+    $email = trim(strtolower($data['email']));
+
+    // Check for duplicate email (excluding current student)
+    $existing = $this->db->where('email', $email)
+                         ->where('id !=', $student_id)
+                         ->get(db_prefix() . 'contacts')
+                         ->row();
+    
+    if ($existing) {
+        log_activity('Student update failed: Duplicate email - ' . $email);
+        return false;
+    }
+
+    // Prepare update data
+    $update_data = [
+        'firstname'   => trim($data['firstname']),
+        'lastname'    => trim($data['lastname']),
+        'email'       => $email,
+        'phonenumber' => $data['phonenumber'] ?? '',
+        'title'       => $data['title'] ?? 'Student',
+    ];
+
+    // Update password only if provided
+    if (!empty($data['password'])) {
+        $update_data['password'] = app_hasher()->HashPassword($data['password']);
+    }
+
+    // Update student
+    $this->db->where('id', $student_id);
+    $this->db->update(db_prefix() . 'contacts', $update_data);
+
+    if ($this->db->affected_rows() >= 0) {
+        log_activity('Student updated: ' . $email . ' (ID: ' . $student_id . ')');
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Get student enrollments with course details and progress
+ * 
+ * @param int $student_id Contact ID
+ * @return array Enrolled courses with progress
+ */
+public function get_student_enrollments($student_id)
+{
+    $table_exists = $this->db->table_exists(db_prefix() . 'elearning_video_progress');
+    
+    if ($table_exists) {
+        $this->db->select('
+            e.*,
+            c.id as course_id,
+            c.title as course_title,
+            c.description,
+            c.category,
+            c.price,
+            c.is_free,
+            (SELECT COUNT(*) 
+             FROM ' . db_prefix() . 'elearning_videos v 
+             WHERE v.course_id = c.id) as total_videos,
+            (SELECT COUNT(*) 
+             FROM ' . db_prefix() . 'elearning_video_progress vp 
+             WHERE vp.student_id = e.student_id 
+             AND vp.course_id = e.course_id 
+             AND vp.completed = 1) as completed_videos
+        ');
+    } else {
+        $this->db->select('
+            e.*,
+            c.id as course_id,
+            c.title as course_title,
+            c.description,
+            c.category,
+            c.price,
+            c.is_free,
+            (SELECT COUNT(*) 
+             FROM ' . db_prefix() . 'elearning_videos v 
+             WHERE v.course_id = c.id) as total_videos,
+            0 as completed_videos
+        ');
+    }
+    
+    $this->db->from(db_prefix() . 'elearning_enrollments e');
+    $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+    $this->db->where('e.student_id', $student_id);
+    $this->db->order_by('e.enrolled_date', 'DESC');
+    
+    $enrollments = $this->db->get()->result_array();
+
+    foreach ($enrollments as &$enrollment) {
+        if (isset($enrollment['total_videos']) && $enrollment['total_videos'] > 0) {
+            $completed = isset($enrollment['completed_videos']) ? $enrollment['completed_videos'] : 0;
+            $enrollment['progress_percentage'] = round(($completed / $enrollment['total_videos']) * 100, 2);
+        } else {
+            $enrollment['progress_percentage'] = 0;
+        }
+        
+        if ($enrollment['progress_percentage'] >= 100) {
+            $enrollment['progress_status'] = 'completed';
+        } elseif ($enrollment['progress_percentage'] > 0) {
+            $enrollment['progress_status'] = 'in_progress';
+        } else {
+            $enrollment['progress_status'] = 'not_started';
+        }
+    }
+
+    return $enrollments;
+}
+
+/**
+ * Get student activity logs
+ * 
+ * @param int $student_id Contact ID
+ * @param int $limit Number of records
+ * @return array Activity logs
+ */
+public function get_student_activity($student_id, $limit = 50)
+{
+    // Get from Perfex activity log
+    $this->db->select('*');
+    $this->db->from(db_prefix() . 'activity_log');
+    $this->db->where('staffid', 0); // Client activities
+    $this->db->like('description', 'Student');
+    $this->db->or_like('description', 'contact ' . $student_id);
+    $this->db->order_by('date', 'DESC');
+    $this->db->limit($limit);
+    
+    return $this->db->get()->result_array();
+}
+
+/**
+ * Mark video as watched/update progress
+ * 
+ * @param int $student_id Contact ID
+ * @param int $course_id Course ID
+ * @param int $video_id Video ID
+ * @param int $watch_time Seconds watched
+ * @param int $total_duration Total video duration
+ * @return bool Success status
+ */
+public function mark_video_watched($student_id, $course_id, $video_id, $watch_time = 0, $total_duration = 0)
+{
+    // Check if progress record exists
+    $existing = $this->db->select('id, watch_time, watch_count')
+                        ->where([
+                            'student_id' => $student_id,
+                            'video_id' => $video_id
+                        ])
+                        ->get(db_prefix() . 'elearning_video_progress')
+                        ->row();
+
+    // Calculate progress
+    $progress_percentage = 0;
+    $completed = 0;
+    
+    if ($total_duration > 0) {
+        $progress_percentage = round(($watch_time / $total_duration) * 100, 2);
+        $completed = $progress_percentage >= 90 ? 1 : 0; // 90% threshold for completion
+    }
+
+    $data = [
+        'course_id' => $course_id,
+        'watch_time' => $watch_time,
+        'total_duration' => $total_duration,
+        'progress_percentage' => $progress_percentage,
+        'completed' => $completed,
+        'last_watched' => date('Y-m-d H:i:s'),
+    ];
+
+    if ($existing) {
+        // Update existing record
+        $data['watch_count'] = $existing->watch_count + 1;
+        
+        $this->db->where('id', $existing->id);
+        $result = $this->db->update(db_prefix() . 'elearning_video_progress', $data);
+    } else {
+        // Insert new record
+        $data['student_id'] = $student_id;
+        $data['video_id'] = $video_id;
+        $data['first_watched'] = date('Y-m-d H:i:s');
+        $data['watch_count'] = 1;
+        
+        $result = $this->db->insert(db_prefix() . 'elearning_video_progress', $data);
+    }
+
+    if ($result) {
+        log_activity('Video progress updated - Student: ' . $student_id . ' - Video: ' . $video_id . ' - Progress: ' . $progress_percentage . '%');
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Get video progress for a student
+ * 
+ * @param int $student_id Contact ID
+ * @param int $video_id Video ID
+ * @return object|null Progress data
+ */
+public function get_video_progress($student_id, $video_id)
+{
+    return $this->db->where([
+                        'student_id' => $student_id,
+                        'video_id' => $video_id
+                    ])
+                    ->get(db_prefix() . 'elearning_video_progress')
+                    ->row();
+}
+
+/**
+ * Get course progress for a student
+ * 
+ * @param int $student_id Contact ID
+ * @param int $course_id Course ID
+ * @return array Progress summary
+ */
+public function get_course_progress($student_id, $course_id)
+{
+    // Get total videos in course
+    $total_videos = $this->db->where('course_id', $course_id)
+                             ->count_all_results(db_prefix() . 'elearning_videos');
+
+    // Get completed videos
+    $completed_videos = $this->db->where([
+                                    'student_id' => $student_id,
+                                    'course_id' => $course_id,
+                                    'completed' => 1
+                                ])
+                                ->count_all_results(db_prefix() . 'elearning_video_progress');
+
+    // Calculate progress
+    $progress_percentage = 0;
+    if ($total_videos > 0) {
+        $progress_percentage = round(($completed_videos / $total_videos) * 100, 2);
+    }
+
+    return [
+        'total_videos' => $total_videos,
+        'completed_videos' => $completed_videos,
+        'progress_percentage' => $progress_percentage,
+        'status' => $progress_percentage >= 100 ? 'completed' : ($progress_percentage > 0 ? 'in_progress' : 'not_started')
+    ];
+}
+
+/**
+ * Get all video progress for a student in a course
+ * 
+ * @param int $student_id Contact ID
+ * @param int $course_id Course ID
+ * @return array Video progress records
+ */
+public function get_student_course_progress($student_id, $course_id)
+{
+    $this->db->select('vp.*, v.title as video_title, v.order_index');
+    $this->db->from(db_prefix() . 'elearning_video_progress vp');
+    $this->db->join(db_prefix() . 'elearning_videos v', 'v.id = vp.video_id', 'left');
+    $this->db->where([
+        'vp.student_id' => $student_id,
+        'vp.course_id' => $course_id
+    ]);
+    $this->db->order_by('v.order_index', 'ASC');
+    
+    return $this->db->get()->result_array();
+}
+
+
+
     /*------------------------------------------------------------
      | Getters / Setters
      *------------------------------------------------------------*/
