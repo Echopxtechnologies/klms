@@ -126,12 +126,12 @@ public function get_course($course_id)
             'description' => isset($data['description']) ? $data['description'] : '',
             'vimeo_url'   => $data['vimeo_url'],
             'sort_order'  => isset($data['sort_order']) ? $data['sort_order'] : 0,
-            'duration'    => isset($data['duration']) ? $data['duration'] : '',
+            // 'duration'    => isset($data['duration']) ? $data['duration'] : '',
             'updated_at'  => date('Y-m-d H:i:s')
         ];
         $this->db->where('id',$id);
         $this->db->update('elearning_videos',$update);
-        return $this->db->affected_row() > 0;
+        return $this->db->affected_rows() > 0;
     }
     public function delete_video($id)
     {
@@ -569,6 +569,361 @@ public function get_student_course_progress($student_id, $course_id)
     }
     
     return ['status' => 'not_found', 'message' => 'Enrollment not found'];
+}
+
+
+/**
+ * ============================================
+ * DASHBOARD STATISTICS METHODS
+ * ============================================
+ */
+
+/**
+ * Count total courses
+ */
+ public function count_total_courses()
+    {
+        return $this->db->count_all_results(db_prefix() . 'elearning_courses');
+    }
+
+    /**
+     * Count active courses (is_active = 1)
+     */
+    public function count_active_courses()
+    {
+        return $this->db->where('is_active', 1)
+                        ->count_all_results(db_prefix() . 'elearning_courses');
+    }
+
+    /**
+     * Count total videos across all courses
+     */
+    public function count_total_videos()
+    {
+        return $this->db->count_all_results(db_prefix() . 'elearning_videos');
+    }
+
+    /**
+     * Count total students (unique contacts in enrollments)
+     */
+    public function count_total_students()
+    {
+        $this->db->select('COUNT(DISTINCT student_id) as count');
+        $result = $this->db->get(db_prefix() . 'elearning_enrollments')->row();
+        return $result ? (int)$result->count : 0;
+    }
+
+    /**
+     * Count enrolled students (all enrollments)
+     */
+    public function count_enrolled_students()
+    {
+        return $this->db->count_all_results(db_prefix() . 'elearning_enrollments');
+    }
+
+    /**
+     * Count active enrollments (paid and active)
+     */
+    public function count_active_enrollments()
+    {
+        return $this->db->where('payment_status', 'paid')
+                        ->where('access_status', 'active')
+                        ->count_all_results(db_prefix() . 'elearning_enrollments');
+    }
+
+    /**
+     * Count pending payments
+     */
+    public function count_pending_payments()
+    {
+        return $this->db->where('payment_status !=', 'paid')
+                        ->count_all_results(db_prefix() . 'elearning_enrollments');
+    }
+
+    /**
+     * Count completed payments
+     */
+    public function count_completed_payments()
+    {
+        return $this->db->where('payment_status', 'paid')
+                        ->count_all_results(db_prefix() . 'elearning_enrollments');
+    }
+
+    /**
+     * Get total revenue from all paid enrollments
+     */
+    public function get_total_revenue()
+    {
+        $this->db->select('SUM(c.price) as total_revenue');
+        $this->db->from(db_prefix() . 'elearning_enrollments e');
+        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+        $this->db->where('e.payment_status', 'paid');
+        
+        $result = $this->db->get()->row();
+        return $result && $result->total_revenue ? (float)$result->total_revenue : 0;
+    }
+
+    /**
+     * Get monthly revenue (current month)
+     */
+    public function get_monthly_revenue()
+    {
+        $this->db->select('SUM(c.price) as monthly_revenue');
+        $this->db->from(db_prefix() . 'elearning_enrollments e');
+        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+        $this->db->where('e.payment_status', 'paid');
+        $this->db->where('MONTH(e.enrolled_date)', date('m'));
+        $this->db->where('YEAR(e.enrolled_date)', date('Y'));
+        
+        $result = $this->db->get()->row();
+        return $result && $result->monthly_revenue ? (float)$result->monthly_revenue : 0;
+    }
+
+    /**
+     * Get recent enrollments
+     */
+    public function get_recent_enrollments($limit = 10)
+    {
+        $this->db->select('
+            e.*,
+            c.title as course_title,
+            c.price,
+            c.is_free,
+            cont.firstname,
+            cont.lastname,
+            cont.email
+        ');
+        $this->db->from(db_prefix() . 'elearning_enrollments e');
+        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+        $this->db->join(db_prefix() . 'contacts cont', 'cont.id = e.student_id', 'left');
+        $this->db->order_by('e.enrolled_date', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get recent students
+     */
+    public function get_recent_students($limit = 10)
+    {
+        $this->db->select('
+            cont.id,
+            cont.firstname,
+            cont.lastname,
+            cont.email,
+            cont.phonenumber,
+            COUNT(e.id) as total_enrollments,
+            MAX(e.enrolled_date) as last_enrollment_date
+        ');
+        $this->db->from(db_prefix() . 'contacts cont');
+        $this->db->join(db_prefix() . 'elearning_enrollments e', 'e.student_id = cont.id', 'inner');
+        $this->db->group_by('cont.id');
+        $this->db->order_by('last_enrollment_date', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get popular courses
+     */
+    public function get_popular_courses($limit = 5)
+    {
+        $this->db->select('
+            c.*,
+            COUNT(e.id) as total_enrollments,
+            SUM(CASE WHEN e.payment_status = "paid" THEN 1 ELSE 0 END) as paid_enrollments,
+            SUM(CASE WHEN e.payment_status = "paid" THEN c.price ELSE 0 END) as total_revenue
+        ');
+        $this->db->from(db_prefix() . 'elearning_courses c');
+        $this->db->join(db_prefix() . 'elearning_enrollments e', 'e.course_id = c.id', 'left');
+        $this->db->group_by('c.id');
+        $this->db->order_by('total_enrollments', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get course completion stats
+     */
+    public function get_course_completion_stats()
+    {
+        if (!$this->db->table_exists(db_prefix() . 'elearning_video_progress')) {
+            return [
+                'total_courses_with_progress' => 0,
+                'avg_completion_rate' => 0,
+                'completed_courses' => 0
+            ];
+        }
+
+        $this->db->select('
+            COUNT(DISTINCT vp.course_id) as total_courses_with_progress,
+            AVG(vp.progress_percentage) as avg_completion_rate,
+            SUM(CASE WHEN vp.completed = 1 THEN 1 ELSE 0 END) as completed_videos
+        ');
+        $this->db->from(db_prefix() . 'elearning_video_progress vp');
+        
+        $result = $this->db->get()->row_array();
+        return $result ? $result : [
+            'total_courses_with_progress' => 0,
+            'avg_completion_rate' => 0,
+            'completed_videos' => 0
+        ];
+    }
+
+    /**
+     * Get enrollment trend data
+     */
+    public function get_enrollment_trend_data($days = 30)
+    {
+        $this->db->select('
+            DATE(enrolled_date) as date,
+            COUNT(*) as enrollments,
+            SUM(CASE WHEN payment_status = "paid" THEN 1 ELSE 0 END) as paid_enrollments
+        ');
+        $this->db->from(db_prefix() . 'elearning_enrollments');
+        $this->db->where('enrolled_date >=', date('Y-m-d', strtotime("-$days days")));
+        $this->db->group_by('DATE(enrolled_date)');
+        $this->db->order_by('date', 'ASC');
+        
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get revenue trend data
+     */
+    public function get_revenue_trend_data($months = 12)
+    {
+        $this->db->select('
+            DATE_FORMAT(e.enrolled_date, "%Y-%m") as month,
+            SUM(c.price) as revenue,
+            COUNT(e.id) as enrollments
+        ');
+        $this->db->from(db_prefix() . 'elearning_enrollments e');
+        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+        $this->db->where('e.payment_status', 'paid');
+        $this->db->where('e.enrolled_date >=', date('Y-m-01', strtotime("-$months months")));
+        $this->db->group_by('month');
+        $this->db->order_by('month', 'ASC');
+        
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get category distribution
+     */
+    public function get_category_distribution()
+    {
+        $this->db->select('
+            c.category,
+            COUNT(c.id) as course_count,
+            COUNT(e.id) as enrollment_count
+        ');
+        $this->db->from(db_prefix() . 'elearning_courses c');
+        $this->db->join(db_prefix() . 'elearning_enrollments e', 'e.course_id = c.id', 'left');
+        $this->db->group_by('c.category');
+        $this->db->order_by('course_count', 'DESC');
+        
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get payment status distribution
+     */
+    public function get_payment_status_distribution()
+    {
+        $this->db->select('
+            payment_status,
+            COUNT(*) as count
+        ');
+        $this->db->from(db_prefix() . 'elearning_enrollments');
+        $this->db->group_by('payment_status');
+        
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Get recent activities
+     */
+    public function get_recent_activities($limit = 15)
+    {
+        $this->db->select('
+            "enrollment" as activity_type,
+            e.enrolled_date as activity_date,
+            CONCAT(cont.firstname, " ", cont.lastname) as student_name,
+            c.title as course_title,
+            e.payment_status,
+            e.access_status
+        ');
+        $this->db->from(db_prefix() . 'elearning_enrollments e');
+        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+        $this->db->join(db_prefix() . 'contacts cont', 'cont.id = e.student_id', 'left');
+        $this->db->order_by('e.enrolled_date', 'DESC');
+        $this->db->limit($limit);
+        
+        return $this->db->get()->result_array();
+    }
+    /**
+ * Get enrollment details with all related information
+ */
+public function get_enrollment_details($enrollment_id)
+{
+    $this->db->select('
+        e.*,
+        c.title as course_title,
+        c.description as course_description,
+        c.price,
+        c.is_free,
+        c.category,
+        c.level,
+        c.language,
+        cont.firstname,
+        cont.lastname,
+        cont.email,
+        cont.phonenumber,
+        cl.company,
+        cl.userid as client_id
+    ');
+    $this->db->from(db_prefix() . 'elearning_enrollments e');
+    $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+    $this->db->join(db_prefix() . 'contacts cont', 'cont.id = e.student_id', 'left');
+    $this->db->join(db_prefix() . 'clients cl', 'cl.userid = cont.userid', 'left');
+    $this->db->where('e.id', $enrollment_id);
+    
+    return $this->db->get()->row_array();
+}
+
+/**
+ * Update enrollment access status
+ */
+public function update_enrollment_access($enrollment_id, $status)
+{
+    $this->db->where('id', $enrollment_id);
+    return $this->db->update(db_prefix() . 'elearning_enrollments', [
+        'access_status' => $status
+    ]);
+}
+
+/**
+ * Update enrollment payment status
+ */
+public function update_enrollment_payment($enrollment_id, $status)
+{
+    $this->db->where('id', $enrollment_id);
+    return $this->db->update(db_prefix() . 'elearning_enrollments', [
+        'payment_status' => $status
+    ]);
+}
+
+/**
+ * Delete enrollment
+ */
+public function delete_enrollment($enrollment_id)
+{
+    $this->db->where('id', $enrollment_id);
+    return $this->db->delete(db_prefix() . 'elearning_enrollments');
 }
 
 }

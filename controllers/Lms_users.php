@@ -301,15 +301,6 @@ class Lms_users extends ClientsController
     // ENROLLMENT & PAYMENT
     // ===================================================================
 
-    /**
-     * Purchase course - handles both free and paid courses
-     */
-/**
- * Purchase course - uses Perfex Razorpay module
- */
-/**
- * Purchase course - direct payment (bypasses invoice page)
- */
 /**
  * Purchase course - direct payment (bypasses invoice page)
  */

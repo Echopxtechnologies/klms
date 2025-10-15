@@ -12,6 +12,368 @@ class Lms_admin extends AdminController
         $this->load->model('authentication_model');
     }
 
+/**
+ * Admin Dashboard - Complete Version
+ */
+public function dashboard()
+{
+    if (!is_admin()) {
+        access_denied('lms_dashboard');
+    }
+
+    // Load model
+    $this->load->model('elearning_admin_model');
+
+    // Get all statistics
+    $data['stats'] = [
+        'total_courses' => $this->elearning_admin_model->count_total_courses(),
+        'active_courses' => $this->elearning_admin_model->count_active_courses(),
+        'total_videos' => $this->elearning_admin_model->count_total_videos(),
+        'total_students' => $this->elearning_admin_model->count_total_students(),
+        'enrolled_students' => $this->elearning_admin_model->count_enrolled_students(),
+        'active_enrollments' => $this->elearning_admin_model->count_active_enrollments(),
+        'pending_payments' => $this->elearning_admin_model->count_pending_payments(),
+        'completed_payments' => $this->elearning_admin_model->count_completed_payments(),
+        'total_revenue' => $this->elearning_admin_model->get_total_revenue(),
+        'monthly_revenue' => $this->elearning_admin_model->get_monthly_revenue(),
+        'course_completion_stats' => $this->elearning_admin_model->get_course_completion_stats(),
+    ];
+
+    // Get recent data
+    $data['recent_enrollments'] = $this->elearning_admin_model->get_recent_enrollments(10);
+    $data['recent_students'] = $this->elearning_admin_model->get_recent_students(10);
+    $data['popular_courses'] = $this->elearning_admin_model->get_popular_courses(5);
+    
+    // Get chart data
+    $data['enrollment_chart_data'] = $this->elearning_admin_model->get_enrollment_trend_data(30);
+    $data['revenue_chart_data'] = $this->elearning_admin_model->get_revenue_trend_data(12);
+    $data['category_distribution'] = $this->elearning_admin_model->get_category_distribution();
+    $data['payment_status_distribution'] = $this->elearning_admin_model->get_payment_status_distribution();
+    $data['recent_activities'] = $this->elearning_admin_model->get_recent_activities(15);
+
+    // Set page title
+    $data['title'] = 'LMS Dashboard';
+    
+    // Load view
+    $this->load->view('admin/dashboard', $data);
+}
+
+/**
+ * Enrollments List - View all enrollments with filtering
+ */
+public function enrollments()
+{
+    if (!is_admin()) {
+        access_denied('lms_enrollments');
+    }
+
+    // Load model
+    $this->load->model('elearning_admin_model');
+
+    // Get filter parameters
+    $data['payment_status'] = $this->input->get('payment_status');
+    $data['access_status'] = $this->input->get('access_status');
+    $data['course_id'] = $this->input->get('course_id');
+
+    // Get all courses for filter dropdown
+    $data['courses'] = $this->elearning_admin_model->get_all_courses();
+
+    // Statistics
+    $data['total_enrollments'] = $this->elearning_admin_model->count_enrolled_students();
+    $data['paid_enrollments'] = $this->elearning_admin_model->count_completed_payments();
+    $data['pending_enrollments'] = $this->elearning_admin_model->count_pending_payments();
+    $data['active_enrollments'] = $this->elearning_admin_model->count_active_enrollments();
+
+    $data['title'] = 'Enrollments Management';
+    
+    $this->load->view('admin/enrollments', $data);
+}
+
+/**
+ * Get enrollments data for DataTable (AJAX)
+ */
+public function get_enrollments_data()
+{
+    if (!is_admin()) {
+        ajax_access_denied();
+    }
+
+    $this->load->model('elearning_admin_model');
+
+    // Get DataTable parameters
+    $draw = $this->input->post('draw');
+    $start = $this->input->post('start');
+    $length = $this->input->post('length');
+    $search = $this->input->post('search')['value'];
+    $order_column = $this->input->post('order')[0]['column'];
+    $order_dir = $this->input->post('order')[0]['dir'];
+
+    // Get filters
+    $payment_status = $this->input->post('payment_status');
+    $access_status = $this->input->post('access_status');
+    $course_id = $this->input->post('course_id');
+
+    // Column mapping for ordering
+    $columns = [
+        0 => 'e.id',
+        1 => 'cont.firstname',
+        2 => 'c.title',
+        3 => 'e.enrolled_date',
+        4 => 'e.payment_status',
+        5 => 'e.access_status',
+        6 => 'c.price',
+    ];
+
+    // Build query
+    $this->db->select('
+        e.*,
+        c.title as course_title,
+        c.price,
+        c.is_free,
+        c.category,
+        cont.firstname,
+        cont.lastname,
+        cont.email,
+        cont.phonenumber,
+        cl.company
+    ');
+    $this->db->from(db_prefix() . 'elearning_enrollments e');
+    $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+    $this->db->join(db_prefix() . 'contacts cont', 'cont.id = e.student_id', 'left');
+    $this->db->join(db_prefix() . 'clients cl', 'cl.userid = cont.userid', 'left');
+
+    // Apply filters
+    if ($payment_status) {
+        $this->db->where('e.payment_status', $payment_status);
+    }
+    if ($access_status) {
+        $this->db->where('e.access_status', $access_status);
+    }
+    if ($course_id) {
+        $this->db->where('e.course_id', $course_id);
+    }
+
+    // Search
+    if ($search) {
+        $this->db->group_start();
+        $this->db->like('cont.firstname', $search);
+        $this->db->or_like('cont.lastname', $search);
+        $this->db->or_like('cont.email', $search);
+        $this->db->or_like('c.title', $search);
+        $this->db->or_like('cl.company', $search);
+        $this->db->group_end();
+    }
+
+    // Count total records
+    $total_records = $this->db->count_all_results('', false);
+
+    // Order
+    if (isset($columns[$order_column])) {
+        $this->db->order_by($columns[$order_column], $order_dir);
+    } else {
+        $this->db->order_by('e.enrolled_date', 'DESC');
+    }
+
+    // Limit
+    if ($length != -1) {
+        $this->db->limit($length, $start);
+    }
+
+    $enrollments = $this->db->get()->result_array();
+
+    // Format data for DataTable
+    $data = [];
+    foreach ($enrollments as $enrollment) {
+        $row = [];
+        
+        // ID
+        $row[] = $enrollment['id'];
+        
+        // Student
+        $student_name = $enrollment['firstname'] . ' ' . $enrollment['lastname'];
+        $row[] = '<div class="student-info">
+                    <strong>' . html_escape($student_name) . '</strong><br>
+                    <small class="text-muted">' . html_escape($enrollment['email']) . '</small>
+                  </div>';
+        
+        // Course
+        $row[] = '<div class="course-info">
+                    <strong>' . html_escape($enrollment['course_title']) . '</strong><br>
+                    <small class="text-muted">' . html_escape($enrollment['category']) . '</small>
+                  </div>';
+        
+        // Enrollment Date
+        $row[] = '<small>' . date('M d, Y H:i', strtotime($enrollment['enrolled_date'])) . '</small>';
+        
+        // Payment Status
+        $payment_badge = '';
+        switch ($enrollment['payment_status']) {
+            case 'paid':
+                $payment_badge = '<span class="label label-success">Paid</span>';
+                break;
+            case 'pending':
+                $payment_badge = '<span class="label label-warning">Pending</span>';
+                break;
+            case 'failed':
+                $payment_badge = '<span class="label label-danger">Failed</span>';
+                break;
+            default:
+                $payment_badge = '<span class="label label-default">' . ucfirst($enrollment['payment_status']) . '</span>';
+        }
+        $row[] = $payment_badge;
+        
+        // Access Status
+        $access_badge = '';
+        switch ($enrollment['access_status']) {
+            case 'active':
+                $access_badge = '<span class="label label-success">Active</span>';
+                break;
+            case 'inactive':
+                $access_badge = '<span class="label label-default">Inactive</span>';
+                break;
+            case 'suspended':
+                $access_badge = '<span class="label label-danger">Suspended</span>';
+                break;
+            default:
+                $access_badge = '<span class="label label-default">' . ucfirst($enrollment['access_status']) . '</span>';
+        }
+        $row[] = $access_badge;
+        
+        // Price
+        if ($enrollment['is_free'] == 1 || $enrollment['price'] == 0) {
+            $row[] = '<span class="text-success"><strong>FREE</strong></span>';
+        } else {
+            $row[] = '<strong>₹' . number_format($enrollment['price'], 2) . '</strong>';
+        }
+        
+        // Payment Reference
+        $row[] = !empty($enrollment['payment_reference']) 
+                 ? '<small>' . html_escape($enrollment['payment_reference']) . '</small>' 
+                 : '<small class="text-muted">-</small>';
+        
+        // Actions
+        $actions = '<div class="btn-group">';
+        $actions .= '<a href="' . admin_url('klms/Lms_admin/view_enrollment/' . $enrollment['id']) . '" class="btn btn-default btn-xs" title="View Details">
+                        <i class="fa fa-eye"></i>
+                     </a>';
+        
+        if ($enrollment['access_status'] !== 'active') {
+            $actions .= '<a href="#" onclick="activateEnrollment(' . $enrollment['id'] . '); return false;" class="btn btn-success btn-xs" title="Activate Access">
+                            <i class="fa fa-check"></i>
+                         </a>';
+        } else {
+            $actions .= '<a href="#" onclick="suspendEnrollment(' . $enrollment['id'] . '); return false;" class="btn btn-warning btn-xs" title="Suspend Access">
+                            <i class="fa fa-ban"></i>
+                         </a>';
+        }
+        
+        $actions .= '<a href="#" onclick="deleteEnrollment(' . $enrollment['id'] . '); return false;" class="btn btn-danger btn-xs" title="Delete">
+                        <i class="fa fa-trash"></i>
+                     </a>';
+        $actions .= '</div>';
+        
+        $row[] = $actions;
+        
+        $data[] = $row;
+    }
+
+    $output = [
+        'draw' => intval($draw),
+        'recordsTotal' => $total_records,
+        'recordsFiltered' => $total_records,
+        'data' => $data
+    ];
+
+    echo json_encode($output);
+}
+
+/**
+ * View enrollment details
+ */
+public function view_enrollment($enrollment_id = null)
+{
+    if (!is_admin()) {
+        access_denied('lms_enrollments');
+    }
+
+    if (!$enrollment_id || !is_numeric($enrollment_id)) {
+        show_404();
+    }
+
+    $this->load->model('elearning_admin_model');
+    
+    $data['enrollment'] = $this->elearning_admin_model->get_enrollment_details($enrollment_id);
+    
+    if (!$data['enrollment']) {
+        show_404();
+    }
+
+    $data['title'] = 'Enrollment Details';
+    
+    $this->load->view('admin/view_enrollment', $data);
+}
+
+/**
+ * Update enrollment status (AJAX)
+ */
+public function update_enrollment_status()
+{
+    if (!is_admin()) {
+        ajax_access_denied();
+    }
+
+    $enrollment_id = $this->input->post('enrollment_id');
+    $status = $this->input->post('status');
+    $type = $this->input->post('type'); // 'access' or 'payment'
+
+    if (!$enrollment_id || !$status || !$type) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+        return;
+    }
+
+    $this->load->model('elearning_admin_model');
+
+    if ($type === 'access') {
+        $result = $this->elearning_admin_model->update_enrollment_access($enrollment_id, $status);
+    } else {
+        $result = $this->elearning_admin_model->update_enrollment_payment($enrollment_id, $status);
+    }
+
+    if ($result) {
+        log_activity('Enrollment #' . $enrollment_id . ' status updated to: ' . $status);
+        echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update status']);
+    }
+}
+
+/**
+ * Delete enrollment (AJAX)
+ */
+public function delete_enrollment()
+{
+    if (!is_admin()) {
+        ajax_access_denied();
+    }
+
+    $enrollment_id = $this->input->post('enrollment_id');
+
+    if (!$enrollment_id) {
+        echo json_encode(['success' => false, 'message' => 'Invalid enrollment ID']);
+        return;
+    }
+
+    $this->load->model('elearning_admin_model');
+    
+    $result = $this->elearning_admin_model->delete_enrollment($enrollment_id);
+
+    if ($result) {
+        log_activity('Enrollment #' . $enrollment_id . ' deleted');
+        echo json_encode(['success' => true, 'message' => 'Enrollment deleted successfully']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to delete enrollment']);
+    }
+}
     public function courses()
 {
     $data['courses'] = $this->elearning_admin_model->get_all_courses();
@@ -224,7 +586,7 @@ public function edit_course($course_id = '')
             } else {
                 set_alert('warning', 'Error updating video');
             }
-            redirect(admin_url('lms_admin/manage_videos/' . $course_id));
+            redirect(admin_url('klms/Lms_admin/manage_videos/' . $course_id));
         }
 
         $data['course'] = $course;

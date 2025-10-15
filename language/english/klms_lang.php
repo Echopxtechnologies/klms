@@ -23,3 +23,4 @@ $lang['klms_course_category'] = 'Category';
 $lang['klms_course_description'] = 'Description';
 $lang['klms_course_vimeo_url'] = 'Vimeo URL';
 $lang['save'] = 'Save';
+$lang['lms_dashboard'] = 'Learning Management System Dashboard';
