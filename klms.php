@@ -18,6 +18,10 @@ $helper = __DIR__ . '/helpers/klms_helper.php';
 if (file_exists($helper)) {
     require_once $helper;
 }
+if (!function_exists('klms_module_init_menu_items')) {
+    require_once __DIR__ . '/klms.php';
+}
+
 
 
 
@@ -98,7 +102,9 @@ register_activation_hook(KLMS_MODULE_NAME, 'klms_module_activate');
 register_deactivation_hook(KLMS_MODULE_NAME, 'klms_module_deactivate');
 register_uninstall_hook(KLMS_MODULE_NAME, 'klms_module_uninstall');
 
-hooks()->add_action('admin_init', 'klms_module_init_menu_items');
+hooks()->add_action('admin_init', 'klms_module_init_menu_items',100);
+// hooks()->add_action('after_admin_init', 'klms_module_init_menu_items', 100);
+
 
 function klms_module_activate()
 {
@@ -131,7 +137,7 @@ function klms_module_init_menu_items()
     // Parent menu -> valid admin page
     $CI->app_menu->add_sidebar_menu_item('klms', [
         'name'     => _l('klms_menu_title'),
-        'href'     => admin_url('lms_admin/courses'), // ✅ valid target
+        'href'     => admin_url('klms/Lms_admin/courses'), // ✅ valid target
         'position' => 30,
         'icon'     => 'fa fa-graduation-cap',
     ]);
@@ -143,13 +149,84 @@ function klms_module_init_menu_items()
         'href'     => admin_url('klms/Lms_admin/courses'),
         'position' => 1,
     ]);
-    
-
         $CI->app_menu->add_sidebar_children_item('klms', [
         'slug'     => 'klms-student',
         'name'     => _l('klms_students'),
         'href'     => admin_url('klms/Lms_admin/students'),
-        'position' => 1,
+        'position' => 2,
     ]);
+    $CI->app_menu->add_sidebar_children_item('klms', [
+            'slug'     => 'klms_enrollments',
+            'name'     => _l('klms_enrollments'),
+            'href'     => admin_url('klms/Lms_admin/enrollments'),
+            'position' => 3,
+        ]);
 
 }
+
+// function klms_module_init_menu_items()
+// {
+//     log_activity('KLMS admin menu init executed');
+
+//     $CI = &get_instance();
+//     log_activity('KLMS hook fired');
+
+//     log_activity('KLMS: Starting menu registration');
+
+//     // === Parent Menu ===
+//     $CI->app_menu->add_sidebar_menu_item('klms', [
+//         'name'     => 'KLMS',
+//         'href'     => admin_url('klms/Lms_admin/dashboard'),
+//         'position' => 30,
+//         'icon'     => 'fa fa-graduation-cap',
+//     ]);
+//     log_activity('KLMS: Added parent menu');
+
+//     // === Submenus ===
+//     $CI->app_menu->add_sidebar_children_item('klms', [
+//         'slug'     => 'klms-dashboard',
+//         'name'     => 'Dashboard',
+//         'href'     => admin_url('klms/Lms_admin/dashboard'),
+//         'position' => 1,
+//         'icon'     => 'fa fa-tachometer',
+//     ]);
+//     log_activity('KLMS: Added Dashboard');
+
+//     $CI->app_menu->add_sidebar_children_item('klms', [
+//         'slug'     => 'klms-courses',
+//         'name'     => 'Courses',
+//         'href'     => admin_url('klms/Lms_admin/courses'),
+//         'position' => 2,
+//         'icon'     => 'fa fa-book',
+//     ]);
+//     log_activity('KLMS: Added Courses');
+
+//     $CI->app_menu->add_sidebar_children_item('klms', [
+//         'slug'     => 'klms-enrollments',
+//         'name'     => 'Enrollments',
+//         'href'     => admin_url('klms/Lms_admin/enrollments'),
+//         'position' => 3,
+//         'icon'     => 'fa fa-list',
+//     ]);
+//     log_activity('KLMS: Added Enrollments');
+
+//     $CI->app_menu->add_sidebar_children_item('klms', [
+//         'slug'     => 'klms-students',
+//         'name'     => 'Students',
+//         'href'     => admin_url('klms/Lms_admin/students'),
+//         'position' => 4,
+//         'icon'     => 'fa fa-users',
+//     ]);
+//     log_activity('KLMS: Added Students');
+
+//     $CI->app_menu->add_sidebar_children_item('klms', [
+//         'slug'     => 'klms-enrolled-students',
+//         'name'     => 'Enrolled Students',
+//         'href'     => admin_url('klms/Lms_admin/enrolled_students'),
+//         'position' => 5,
+//         'icon'     => 'fa fa-user-check',
+//     ]);
+//     log_activity('KLMS: Added Enrolled Students');
+
+//     log_activity('KLMS: Finished menu registration');
+// }

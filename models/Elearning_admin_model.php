@@ -918,12 +918,180 @@ public function update_enrollment_payment($enrollment_id, $status)
 }
 
 /**
+ * ========================================
+ * ENROLLMENT MANAGEMENT
+ * ========================================
+ */
+
+/**
+ * Get all enrollments with student and course info
+ */
+public function get_enrollments()
+{
+    $this->db->select('
+        e.*,
+        CONCAT(c.firstname, " ", c.lastname) as student_name,
+        c.email as student_email,
+        co.title as course_title,
+        co.price as course_price
+    ');
+    $this->db->from(db_prefix() . 'elearning_enrollments e');
+    $this->db->join(db_prefix() . 'contacts c', 'c.id = e.student_id', 'left');
+    $this->db->join(db_prefix() . 'elearning_courses co', 'co.id = e.course_id', 'left');
+    $this->db->order_by('e.enrolled_date', 'DESC');
+    
+    return $this->db->get()->result_array();
+}
+
+/**
+ * Get single enrollment
+ */
+public function get_enrollment($id)
+{
+    $this->db->where('id', $id);
+    return $this->db->get(db_prefix() . 'elearning_enrollments')->row();
+}
+public function get_all_enrollments()
+{
+    $this->db->select('
+        e.*,
+        CONCAT(s.firstname, " ", s.lastname) AS student_name,
+        c.title AS course_title
+    ');
+    $this->db->from(db_prefix() . 'elearning_enrollments e');
+    $this->db->join(db_prefix() . 'contacts s', 's.id = e.student_id', 'left');
+    $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+    return $this->db->get()->result_array();
+}
+
+
+/**
+ * Add enrollment
+ */
+public function add_enrollment($data)
+{
+    // Set default values
+    if (empty($data['enrolled_date'])) {
+        $data['enrolled_date'] = date('Y-m-d H:i:s');
+    }
+    
+    if (empty($data['access_status'])) {
+        $data['access_status'] = 'active';
+    }
+    
+    // Calculate expiry date if course has duration
+    if (!empty($data['course_id'])) {
+        $course = $this->get_course($data['course_id']);
+        if ($course && !empty($course['duration_days'])) {
+            $data['expiry_date'] = date('Y-m-d', strtotime('+' . $course['duration_days'] . ' days'));
+        }
+    }
+    
+    $this->db->insert(db_prefix() . 'elearning_enrollments', $data);
+    $insert_id = $this->db->insert_id();
+    
+    if ($insert_id) {
+        log_activity('New Enrollment Added [ID: ' . $insert_id . ', Student: ' . $data['student_id'] . ', Course: ' . $data['course_id'] . ']');
+    }
+    
+    return $insert_id;
+}
+
+/**
+ * Update enrollment
+ */
+public function update_enrollment($id, $data)
+{
+    $this->db->where('id', $id);
+    $this->db->update(db_prefix() . 'elearning_enrollments', $data);
+    
+    if ($this->db->affected_rows() > 0) {
+        log_activity('Enrollment Updated [ID: ' . $id . ']');
+        return true;
+    }
+    
+    return false;
+}
+
+/**
  * Delete enrollment
  */
-public function delete_enrollment($enrollment_id)
+public function delete_enrollment($id)
 {
-    $this->db->where('id', $enrollment_id);
-    return $this->db->delete(db_prefix() . 'elearning_enrollments');
+    // Get enrollment info before deleting for logging
+    $enrollment = $this->get_enrollment($id);
+    
+    $this->db->where('id', $id);
+    $this->db->delete(db_prefix() . 'elearning_enrollments');
+    
+    if ($this->db->affected_rows() > 0) {
+        log_activity('Enrollment Deleted [ID: ' . $id . ', Student: ' . ($enrollment ? $enrollment->student_id : 'N/A') . ']');
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Get all students for dropdown
+ */
+public function get_all_students()
+{
+    $this->db->select('id, CONCAT(firstname, " ", lastname, " (", email, ")") as name');
+    $this->db->from(db_prefix() . 'contacts');
+    $this->db->where('active', 1);
+    $this->db->order_by('firstname', 'ASC');
+    
+    return $this->db->get()->result_array();
+}
+
+/**
+ * Get all courses for dropdown
+ */
+// public function get_all_courses()
+// {
+//     $this->db->select('id, title, price');
+//     $this->db->from(db_prefix() . 'elearning_courses');
+//     $this->db->where('status', 'published');
+//     $this->db->order_by('title', 'ASC');
+    
+//     return $this->db->get()->result_array();
+// }
+
+/**
+ * Check if student is already enrolled in course
+ */
+public function is_student_enrolled($student_id, $course_id)
+{
+    $this->db->where('student_id', $student_id);
+    $this->db->where('course_id', $course_id);
+    $count = $this->db->count_all_results(db_prefix() . 'elearning_enrollments');
+    
+    return $count > 0;
+}
+
+/**
+ * Get enrollment by student and course
+ */
+public function get_enrollment_by_student_course($student_id, $course_id)
+{
+    $this->db->where('student_id', $student_id);
+    $this->db->where('course_id', $course_id);
+    return $this->db->get(db_prefix() . 'elearning_enrollments')->row();
+}
+
+/**
+ * Update enrollment access status based on expiry
+ */
+public function update_expired_enrollments()
+{
+    $this->db->where('expiry_date <', date('Y-m-d'));
+    $this->db->where('access_status !=', 'expired');
+    $this->db->update(db_prefix() . 'elearning_enrollments', [
+        'access_status' => 'expired'
+    ]);
+    
+    return $this->db->affected_rows();
 }
 
 }

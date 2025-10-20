@@ -12,6 +12,26 @@ class Lms_admin extends AdminController
         $this->load->model('authentication_model');
     }
 
+    public function enrolled_students()
+{
+    if (!is_admin()) {
+        access_denied('Enrolled Students');
+    }
+
+    $this->db->select('c.id, c.firstname, c.lastname, c.email, e.course_id, co.title as course_title, e.enrolled_date, e.access_status');
+    $this->db->from(db_prefix() . 'contacts c');
+    $this->db->join(db_prefix() . 'elearning_enrollments e', 'c.id = e.student_id', 'left');
+    $this->db->join(db_prefix() . 'elearning_courses co', 'co.id = e.course_id', 'left');
+    $this->db->where('e.access_status', 'active');
+    $this->db->order_by('e.enrolled_date', 'DESC');
+
+    $data['enrolled_students'] = $this->db->get()->result_array();
+    $data['title'] = 'Enrolled Students';
+    
+    $this->load->view('admin/enrollments_list', $data);
+}
+
+
 /**
  * Admin Dashboard - Complete Version
  */
@@ -57,234 +77,203 @@ public function dashboard()
     // Load view
     $this->load->view('admin/dashboard', $data);
 }
+/**
+ * ========================================
+ * ENROLLMENTS MANAGEMENT
+ * ========================================
+ */
 
 /**
- * Enrollments List - View all enrollments with filtering
+ * List all enrollments
  */
 public function enrollments()
 {
-    if (!is_admin()) {
-        access_denied('lms_enrollments');
+    $this->db->select('e.*, c.firstname, c.lastname, c.email, co.title as course_title');
+    $this->db->from(db_prefix() . 'elearning_enrollments e');
+    $this->db->join(db_prefix() . 'contacts c', 'c.id = e.student_id', 'left');
+    $this->db->join(db_prefix() . 'elearning_courses co', 'co.id = e.course_id', 'left');
+    $this->db->order_by('e.enrolled_date', 'DESC');
+    $enrollments = $this->db->get()->result_array();
+
+    $data['enrollments'] = $enrollments ? $enrollments : [];
+    $data['title'] = 'Enrollments Management';
+    $this->load->view('admin/enrollments_list', $data);
+}
+
+
+
+/**
+ * Get enrollments data for DataTables (AJAX)
+ */
+public function enrollments_table()
+{
+    if (!is_admin() && !has_permission('elearning', '', 'view')) {
+        ajax_access_denied();
     }
 
-    // Load model
-    $this->load->model('elearning_admin_model');
+    // Simple manual query
+    $this->db->select('e.id, CONCAT(c.firstname, " ", c.lastname) as student_name, c.email as student_email, co.title as course_title, e.enrolled_date, e.expiry_date, e.payment_status, e.access_status');
+    $this->db->from(db_prefix() . 'elearning_enrollments e');
+    $this->db->join(db_prefix() . 'contacts c', 'c.id = e.student_id', 'left');
+    $this->db->join(db_prefix() . 'elearning_courses co', 'co.id = e.course_id', 'left');
+    $query = $this->db->get();
+    $results = $query->result_array();
 
-    // Get filter parameters
-    $data['payment_status'] = $this->input->get('payment_status');
-    $data['access_status'] = $this->input->get('access_status');
-    $data['course_id'] = $this->input->get('course_id');
+    $data = [];
+    foreach ($results as $row) {
+        $data[] = [
+            'id'             => '#' . $row['id'],
+            'student_name'   => $row['student_name'] . '<br><small>' . $row['student_email'] . '</small>',
+            'course_title'   => $row['course_title'] ?: 'N/A',
+            'enrolled_date'  => _dt($row['enrolled_date']),
+            'expiry_date'    => !empty($row['expiry_date']) ? _d($row['expiry_date']) : 'No Expiry',
+            'payment_status' => ucfirst($row['payment_status']),
+            'access_status'  => ucfirst($row['access_status']),
+            'actions'        => '
+                <div class="text-right nowrap">
+                    <a href="' . admin_url('klms/Lms_admin/enrollment/' . $row['id']) . '" 
+                       class="btn btn-default btn-icon" title="Edit"><i class="fa fa-pencil-square-o"></i></a>
+                    <a href="' . admin_url('klms/Lms_admin/delete_enrollment/' . $row['id']) . '" 
+                       class="btn btn-danger btn-icon _delete" title="Delete"><i class="fa fa-trash"></i></a>
+                </div>'
+        ];
+    }
 
-    // Get all courses for filter dropdown
-    $data['courses'] = $this->elearning_admin_model->get_all_courses();
+    echo json_encode(['data' => $data]);
+}
 
-    // Statistics
-    $data['total_enrollments'] = $this->elearning_admin_model->count_enrolled_students();
-    $data['paid_enrollments'] = $this->elearning_admin_model->count_completed_payments();
-    $data['pending_enrollments'] = $this->elearning_admin_model->count_pending_payments();
-    $data['active_enrollments'] = $this->elearning_admin_model->count_active_enrollments();
+/**
+ * Add/Edit enrollment modal
+ */
+public function enrollment($id = '')
+{
+    if (!is_admin() && !has_permission('elearning', '', 'create')) {
+        access_denied('E-Learning Enrollments');
+    }
 
-    $data['title'] = 'Enrollments Management';
+    if ($this->input->post()) {
+        $data = $this->input->post();
+        
+        if ($id == '') {
+            // Add new enrollment
+            $id = $this->elearning_admin_model->add_enrollment($data);
+            
+            if ($id) {
+                set_alert('success', 'Enrollment created successfully');
+                echo json_encode(['success' => true, 'message' => 'Enrollment created successfully']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to create enrollment']);
+            }
+        } else {
+            // Update existing enrollment
+            $success = $this->elearning_admin_model->update_enrollment($id, $data);
+            
+            if ($success) {
+                set_alert('success', 'Enrollment updated successfully');
+                // echo json_encode(['success' => true, 'message' => 'Enrollment updated successfully']);
+                redirect(admin_url('klms/Lms_admin/enrollments'));
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to update enrollment']);
+            }
+        }
+        return;
+    }
+
+    $data = [];
     
-    $this->load->view('admin/enrollments', $data);
+    if ($id != '') {
+        $data['enrollment'] = $this->elearning_admin_model->get_enrollment($id);
+        if (!$data['enrollment']) {
+            show_404();
+        }
+    }
+    
+    // Get students and courses for dropdowns
+    $data['students'] = $this->elearning_admin_model->get_all_students();
+    $data['courses'] = $this->elearning_admin_model->get_all_courses();
+    
+    $this->load->view('admin/enrollment', $data);
+}
+
+/**
+ * Delete enrollment
+ */
+public function delete_enrollment($id)
+{
+    if (!is_admin() && !has_permission('elearning', '', 'delete')) {
+        access_denied('E-Learning Enrollments');
+    }
+
+    $response = $this->elearning_admin_model->delete_enrollment($id);
+    
+    if ($response) {
+        set_alert('success', 'Enrollment deleted successfully');
+    } else {
+        set_alert('danger', 'Failed to delete enrollment');
+    }
+    
+    redirect(admin_url('klms/Lms_admin/enrollments'));
+}
+
+/**
+ * Get enrollment statistics (AJAX)
+ */
+public function enrollment_stats()
+{
+    header('Content-Type: application/json');
+    
+    $stats = [
+        'active' => $this->db->where('access_status', 'active')
+                             ->from(db_prefix() . 'elearning_enrollments')
+                             ->count_all_results(),
+        'pending' => $this->db->where('payment_status', 'pending')
+                              ->from(db_prefix() . 'elearning_enrollments')
+                              ->count_all_results(),
+        'expired' => $this->db->where('access_status', 'expired')
+                              ->from(db_prefix() . 'elearning_enrollments')
+                              ->count_all_results(),
+        'total' => $this->db->from(db_prefix() . 'elearning_enrollments')
+                            ->count_all_results()
+    ];
+    
+    echo json_encode(['success' => true, 'stats' => $stats]);
+    die();
 }
 
 /**
  * Get enrollments data for DataTable (AJAX)
  */
-public function get_enrollments_data()
+public function get_enrollments()
 {
     if (!is_admin()) {
-        ajax_access_denied();
+        access_denied('Enrollments');
     }
 
-    $this->load->model('elearning_admin_model');
+    $this->load->model('Elearning_admin_model');
 
-    // Get DataTable parameters
-    $draw = $this->input->post('draw');
-    $start = $this->input->post('start');
-    $length = $this->input->post('length');
-    $search = $this->input->post('search')['value'];
-    $order_column = $this->input->post('order')[0]['column'];
-    $order_dir = $this->input->post('order')[0]['dir'];
+    $results = $this->elearning_admin_model->get_all_enrollments();
 
-    // Get filters
-    $payment_status = $this->input->post('payment_status');
-    $access_status = $this->input->post('access_status');
-    $course_id = $this->input->post('course_id');
-
-    // Column mapping for ordering
-    $columns = [
-        0 => 'e.id',
-        1 => 'cont.firstname',
-        2 => 'c.title',
-        3 => 'e.enrolled_date',
-        4 => 'e.payment_status',
-        5 => 'e.access_status',
-        6 => 'c.price',
-    ];
-
-    // Build query
-    $this->db->select('
-        e.*,
-        c.title as course_title,
-        c.price,
-        c.is_free,
-        c.category,
-        cont.firstname,
-        cont.lastname,
-        cont.email,
-        cont.phonenumber,
-        cl.company
-    ');
-    $this->db->from(db_prefix() . 'elearning_enrollments e');
-    $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
-    $this->db->join(db_prefix() . 'contacts cont', 'cont.id = e.student_id', 'left');
-    $this->db->join(db_prefix() . 'clients cl', 'cl.userid = cont.userid', 'left');
-
-    // Apply filters
-    if ($payment_status) {
-        $this->db->where('e.payment_status', $payment_status);
-    }
-    if ($access_status) {
-        $this->db->where('e.access_status', $access_status);
-    }
-    if ($course_id) {
-        $this->db->where('e.course_id', $course_id);
-    }
-
-    // Search
-    if ($search) {
-        $this->db->group_start();
-        $this->db->like('cont.firstname', $search);
-        $this->db->or_like('cont.lastname', $search);
-        $this->db->or_like('cont.email', $search);
-        $this->db->or_like('c.title', $search);
-        $this->db->or_like('cl.company', $search);
-        $this->db->group_end();
-    }
-
-    // Count total records
-    $total_records = $this->db->count_all_results('', false);
-
-    // Order
-    if (isset($columns[$order_column])) {
-        $this->db->order_by($columns[$order_column], $order_dir);
-    } else {
-        $this->db->order_by('e.enrolled_date', 'DESC');
-    }
-
-    // Limit
-    if ($length != -1) {
-        $this->db->limit($length, $start);
-    }
-
-    $enrollments = $this->db->get()->result_array();
-
-    // Format data for DataTable
     $data = [];
-    foreach ($enrollments as $enrollment) {
-        $row = [];
-        
-        // ID
-        $row[] = $enrollment['id'];
-        
-        // Student
-        $student_name = $enrollment['firstname'] . ' ' . $enrollment['lastname'];
-        $row[] = '<div class="student-info">
-                    <strong>' . html_escape($student_name) . '</strong><br>
-                    <small class="text-muted">' . html_escape($enrollment['email']) . '</small>
-                  </div>';
-        
-        // Course
-        $row[] = '<div class="course-info">
-                    <strong>' . html_escape($enrollment['course_title']) . '</strong><br>
-                    <small class="text-muted">' . html_escape($enrollment['category']) . '</small>
-                  </div>';
-        
-        // Enrollment Date
-        $row[] = '<small>' . date('M d, Y H:i', strtotime($enrollment['enrolled_date'])) . '</small>';
-        
-        // Payment Status
-        $payment_badge = '';
-        switch ($enrollment['payment_status']) {
-            case 'paid':
-                $payment_badge = '<span class="label label-success">Paid</span>';
-                break;
-            case 'pending':
-                $payment_badge = '<span class="label label-warning">Pending</span>';
-                break;
-            case 'failed':
-                $payment_badge = '<span class="label label-danger">Failed</span>';
-                break;
-            default:
-                $payment_badge = '<span class="label label-default">' . ucfirst($enrollment['payment_status']) . '</span>';
-        }
-        $row[] = $payment_badge;
-        
-        // Access Status
-        $access_badge = '';
-        switch ($enrollment['access_status']) {
-            case 'active':
-                $access_badge = '<span class="label label-success">Active</span>';
-                break;
-            case 'inactive':
-                $access_badge = '<span class="label label-default">Inactive</span>';
-                break;
-            case 'suspended':
-                $access_badge = '<span class="label label-danger">Suspended</span>';
-                break;
-            default:
-                $access_badge = '<span class="label label-default">' . ucfirst($enrollment['access_status']) . '</span>';
-        }
-        $row[] = $access_badge;
-        
-        // Price
-        if ($enrollment['is_free'] == 1 || $enrollment['price'] == 0) {
-            $row[] = '<span class="text-success"><strong>FREE</strong></span>';
-        } else {
-            $row[] = '<strong>₹' . number_format($enrollment['price'], 2) . '</strong>';
-        }
-        
-        // Payment Reference
-        $row[] = !empty($enrollment['payment_reference']) 
-                 ? '<small>' . html_escape($enrollment['payment_reference']) . '</small>' 
-                 : '<small class="text-muted">-</small>';
-        
-        // Actions
-        $actions = '<div class="btn-group">';
-        $actions .= '<a href="' . admin_url('klms/Lms_admin/view_enrollment/' . $enrollment['id']) . '" class="btn btn-default btn-xs" title="View Details">
-                        <i class="fa fa-eye"></i>
-                     </a>';
-        
-        if ($enrollment['access_status'] !== 'active') {
-            $actions .= '<a href="#" onclick="activateEnrollment(' . $enrollment['id'] . '); return false;" class="btn btn-success btn-xs" title="Activate Access">
-                            <i class="fa fa-check"></i>
-                         </a>';
-        } else {
-            $actions .= '<a href="#" onclick="suspendEnrollment(' . $enrollment['id'] . '); return false;" class="btn btn-warning btn-xs" title="Suspend Access">
-                            <i class="fa fa-ban"></i>
-                         </a>';
-        }
-        
-        $actions .= '<a href="#" onclick="deleteEnrollment(' . $enrollment['id'] . '); return false;" class="btn btn-danger btn-xs" title="Delete">
-                        <i class="fa fa-trash"></i>
-                     </a>';
-        $actions .= '</div>';
-        
-        $row[] = $actions;
-        
-        $data[] = $row;
+    foreach ($results as $row) {
+        $data[] = [
+            'id' => $row['id'],
+            'student_name' => $row['student_name'],
+            'course_title' => $row['course_title'],
+            'enrolled_date' => _dt($row['enrolled_date']),
+            'expiry_date' => !empty($row['expiry_date']) ? _d($row['expiry_date']) : '-',
+            'payment_status' => ucfirst($row['payment_status']),
+            'access_status' => ucfirst($row['access_status']),
+            'payment_reference' => $row['payment_reference'],
+            'actions' => '<a href="' . admin_url('klms/Lms_admin/enrollment/' . $row['id']) . '" class="btn btn-sm btn-default">
+                            <i class="fa fa-pencil"></i>
+                          </a>
+                          <a href="#" onclick="deleteEnrollment(' . $row['id'] . ')" class="btn btn-sm btn-danger">
+                            <i class="fa fa-trash"></i>
+                          </a>'
+        ];
     }
 
-    $output = [
-        'draw' => intval($draw),
-        'recordsTotal' => $total_records,
-        'recordsFiltered' => $total_records,
-        'data' => $data
-    ];
-
-    echo json_encode($output);
+    echo json_encode(['data' => $data]);
 }
 
 /**
@@ -312,6 +301,35 @@ public function view_enrollment($enrollment_id = null)
     
     $this->load->view('admin/view_enrollment', $data);
 }
+public function edit_enrollment($id = '')
+{
+    if (empty($id)) {
+        set_alert('warning', 'Invalid enrollment ID');
+        redirect(admin_url('klms/Lms_admin/enrollments'));
+    }
+
+    // Fetch existing enrollment
+    $this->db->select('e.*, c.firstname, c.lastname, c.email, co.title as course_title');
+    $this->db->from(db_prefix() . 'elearning_enrollments e');
+    $this->db->join(db_prefix() . 'contacts c', 'c.id = e.student_id', 'left');
+    $this->db->join(db_prefix() . 'elearning_courses co', 'co.id = e.course_id', 'left');
+    $this->db->where('e.id', $id);
+    $enrollment = $this->db->get()->row();
+
+    if (!$enrollment) {
+        set_alert('warning', 'Enrollment not found');
+        redirect(admin_url('klms/Lms_admin/enrollments'));
+    }
+
+    // Fetch dropdown options
+    $data['students'] = $this->db->get(db_prefix() . 'contacts')->result();
+    $data['courses'] = $this->db->get(db_prefix() . 'elearning_courses')->result();
+    $data['enrollment'] = $enrollment;
+    $data['title'] = 'Edit Enrollment';
+
+    $this->load->view('admin/edit_enrollment', $data);
+}
+
 
 /**
  * Update enrollment status (AJAX)
@@ -347,33 +365,6 @@ public function update_enrollment_status()
     }
 }
 
-/**
- * Delete enrollment (AJAX)
- */
-public function delete_enrollment()
-{
-    if (!is_admin()) {
-        ajax_access_denied();
-    }
-
-    $enrollment_id = $this->input->post('enrollment_id');
-
-    if (!$enrollment_id) {
-        echo json_encode(['success' => false, 'message' => 'Invalid enrollment ID']);
-        return;
-    }
-
-    $this->load->model('elearning_admin_model');
-    
-    $result = $this->elearning_admin_model->delete_enrollment($enrollment_id);
-
-    if ($result) {
-        log_activity('Enrollment #' . $enrollment_id . ' deleted');
-        echo json_encode(['success' => true, 'message' => 'Enrollment deleted successfully']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Failed to delete enrollment']);
-    }
-}
     public function courses()
 {
     $data['courses'] = $this->elearning_admin_model->get_all_courses();
