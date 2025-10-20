@@ -92,7 +92,6 @@ if (is_dir($upload_dir)) {
 // REMOVE PERMISSIONS
 // ===================================================================
 $CI->db->where('shortname', 'klms');
-$CI->db->delete(db_prefix() . 'permissions');
 
 log_activity('E-Learning: Removed module permissions');
 
