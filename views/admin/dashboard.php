@@ -26,7 +26,6 @@
                                         <li><a href="<?php echo admin_url('klms/Lms_admin/students'); ?>"><i class="fa fa-users"></i> View Students</a></li>
                                         <li><a href="<?php echo admin_url('klms/Lms_admin/enrollments'); ?>"><i class="fa fa-list"></i> View Enrollments</a></li>
                                         <li role="separator" class="divider"></li>
-                                        <li><a href="<?php echo admin_url('klms/Lms_admin/settings'); ?>"><i class="fa fa-cog"></i> Settings</a></li>
                                     </ul>
                                 </div>
                             </div>
@@ -89,7 +88,7 @@
                             <small>₹<?php echo number_format($stats['monthly_revenue'], 2); ?> This Month</small>
                         </div>
                     </div>
-                    <a href="<?php echo admin_url('klms/Lms_admin/enrollments'); ?>" class="stat-footer">
+                    <a href="<?php echo admin_url('invoices'); ?>" class="stat-footer">
                         View Details <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
@@ -174,72 +173,7 @@
             </div>
         </div>
 
-        <!-- Secondary Stats Row -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="panel_s">
-                    <div class="panel-body">
-                        <div class="row">
-                            <!-- Total Videos -->
-                            <div class="col-lg-3 col-md-6 col-sm-6">
-                                <div class="mini-stat-card text-center">
-                                    <div class="mini-stat-icon">
-                                        <i class="fa fa-play-circle text-primary"></i>
-                                    </div>
-                                    <div class="mini-stat-content">
-                                        <h3 class="mini-stat-value"><?php echo $stats['total_videos']; ?></h3>
-                                        <p class="mini-stat-label">Total Videos</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Completed Payments -->
-                            <div class="col-lg-3 col-md-6 col-sm-6">
-                                <div class="mini-stat-card text-center">
-                                    <div class="mini-stat-icon">
-                                        <i class="fa fa-credit-card text-success"></i>
-                                    </div>
-                                    <div class="mini-stat-content">
-                                        <h3 class="mini-stat-value"><?php echo $stats['completed_payments']; ?></h3>
-                                        <p class="mini-stat-label">Completed Payments</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Pending Payments -->
-                            <div class="col-lg-3 col-md-6 col-sm-6">
-                                <div class="mini-stat-card text-center">
-                                    <div class="mini-stat-icon">
-                                        <i class="fa fa-clock-o text-warning"></i>
-                                    </div>
-                                    <div class="mini-stat-content">
-                                        <h3 class="mini-stat-value"><?php echo $stats['pending_payments']; ?></h3>
-                                        <p class="mini-stat-label">Pending Payments</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Avg Completion -->
-                            <div class="col-lg-3 col-md-6 col-sm-6">
-                                <div class="mini-stat-card text-center">
-                                    <div class="mini-stat-icon">
-                                        <i class="fa fa-chart-line text-info"></i>
-                                    </div>
-                                    <div class="mini-stat-content">
-                                        <h3 class="mini-stat-value">
-                                            <?php echo isset($stats['course_completion_stats']['avg_completion_rate']) 
-                                                ? number_format($stats['course_completion_stats']['avg_completion_rate'], 1) 
-                                                : 0; ?>%
-                                        </h3>
-                                        <p class="mini-stat-label">Avg Completion Rate</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+       
 
 
         <!-- Data Tables Row -->
@@ -258,7 +192,6 @@
                                         <th>Course</th>
                                         <th>Enrollments</th>
                                         <th>Revenue</th>
-                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -274,12 +207,6 @@
                                                 </td>
                                                 <td>
                                                     <strong class="text-success">₹<?php echo number_format($course['total_revenue'], 2); ?></strong>
-                                                </td>
-                                                <td>
-                                                    <a href="<?php echo admin_url('klms/Lms_admin/view_course/' . $course['id']); ?>" 
-                                                       class="btn btn-sm btn-default">
-                                                        <i class="fa fa-eye"></i>
-                                                    </a>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>

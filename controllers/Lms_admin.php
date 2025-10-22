@@ -57,6 +57,8 @@ public function dashboard()
         'total_revenue' => $this->elearning_admin_model->get_total_revenue(),
         'monthly_revenue' => $this->elearning_admin_model->get_monthly_revenue(),
         'course_completion_stats' => $this->elearning_admin_model->get_course_completion_stats(),
+        'invoice_stats' => $this->elearning_admin_model->get_invoice_statistics(),
+
     ];
 
     // Get recent data
@@ -64,12 +66,6 @@ public function dashboard()
     $data['recent_students'] = $this->elearning_admin_model->get_recent_students(10);
     $data['popular_courses'] = $this->elearning_admin_model->get_popular_courses(5);
     
-    // Get chart data
-    $data['enrollment_chart_data'] = $this->elearning_admin_model->get_enrollment_trend_data(30);
-    $data['revenue_chart_data'] = $this->elearning_admin_model->get_revenue_trend_data(12);
-    $data['category_distribution'] = $this->elearning_admin_model->get_category_distribution();
-    $data['payment_status_distribution'] = $this->elearning_admin_model->get_payment_status_distribution();
-    $data['recent_activities'] = $this->elearning_admin_model->get_recent_activities(15);
 
     // Set page title
     $data['title'] = 'LMS Dashboard';

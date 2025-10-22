@@ -304,24 +304,66 @@ class Lms_users extends ClientsController
 /**
  * Purchase course - direct payment (bypasses invoice page)
  */
+/**
+ * Purchase course - direct payment (bypasses invoice page)
+ */
 public function purchase($course_id = null)
 {
+    // ✅ 1. Check if user is logged in
     if (!is_client_logged_in()) {
+        set_alert('warning', 'Please log in to purchase courses.');
         redirect(site_url('authentication/login'));
+        return;
     }
 
+    // ✅ 2. Validate course ID
     if (!$course_id || !is_numeric($course_id)) {
         show_404();
     }
 
+    // ✅ 3. Get course details
     $course = $this->elearning_admin_model->get_course($course_id);
     if (!$course) {
         show_404();
     }
 
+    // ✅ 4. Get contact ID
     $contact_id = get_contact_user_id();
 
-    // ✅ FREE COURSE: Direct enrollment
+    // ✅ 5. Load contact and verify they exist
+    $this->load->model('clients_model');
+    $contact = $this->clients_model->get_contact($contact_id);
+    
+    if (!$contact) {
+        set_alert('danger', 'User account not found. Please contact support.');
+        redirect(site_url('authentication/logout'));
+        return;
+    }
+
+    // ✅ 6. CRITICAL: Check if user account is active
+    if (!isset($contact->active) || $contact->active != 1) {
+        log_activity('Inactive user attempted purchase - Contact ID: ' . $contact_id . ' - Course ID: ' . $course_id);
+        
+        set_alert('danger', 'Your account is inactive. Please contact support to activate your account.');
+        redirect(site_url($this->module_base_url . '/all_courses'));
+        return;
+    }
+
+    // ✅ 7. Check if already enrolled
+    $existing_enrollment = $this->db->get_where(db_prefix() . 'elearning_enrollments', [
+        'student_id' => $contact_id,
+        'course_id' => $course_id,
+        'access_status' => 'active',
+        'payment_status' => 'paid'
+    ])->row();
+
+    if ($existing_enrollment) {
+        set_alert('info', 'You are already enrolled in this course.');
+        redirect(site_url($this->module_base_url . '/course_videos/' . $course_id));
+        return;
+    }
+
+    // ✅ 8. FREE COURSE: Direct enrollment
     if ($course['is_free'] == 1 || (float)$course['price'] <= 0) {
         $free_payment_id = 'FREE_' . time() . '_' . $contact_id;
         
@@ -329,18 +371,18 @@ public function purchase($course_id = null)
         return;
     }
 
-    // ✅ PAID COURSE: Create invoice and redirect DIRECTLY to Razorpay
+    // ✅ 9. PAID COURSE: Verify client account exists
+    $client_id = $contact->userid;
     
-    $this->load->model('clients_model');
-    $contact = $this->clients_model->get_contact($contact_id);
-    if (!$contact) {
-        show_404();
+    if (!$client_id || $client_id <= 0) {
+        set_alert('danger', 'No client account found. Please contact support.');
+        redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
+        return;
     }
 
-    $client_id = $contact->userid;
+    // ✅ 10. Check for existing unpaid invoice
     $this->load->model('invoices_model');
-
-    // Check for existing unpaid invoice
+    
     $existing_invoice = $this->db->select('id, status, hash')
         ->from(db_prefix() . 'invoices')
         ->where('clientid', $client_id)
@@ -356,9 +398,9 @@ public function purchase($course_id = null)
         $invoice_id = $existing_invoice->id;
         $invoice = $this->invoices_model->get($invoice_id);
         
-        log_activity('Reusing existing invoice - Invoice: ' . $invoice_id . ' - Course: ' . $course_id);
+        log_activity('Reusing existing invoice - Invoice: ' . $invoice_id . ' - Course: ' . $course_id . ' - Contact: ' . $contact_id);
     } else {
-        // Create new invoice
+        // ✅ 11. Create new invoice
         $invoice_data = [
             'clientid'      => $client_id,
             'date'          => date('Y-m-d'),
@@ -383,24 +425,28 @@ public function purchase($course_id = null)
         ];
 
         $invoice_id = $this->invoices_model->add($invoice_data);
+        
         if (!$invoice_id) {
-            set_alert('danger', 'Failed to create invoice. Please try again.');
+            log_activity('Invoice creation failed - Course: ' . $course_id . ' - Contact: ' . $contact_id);
+            set_alert('danger', 'Failed to create invoice. Please try again or contact support.');
             redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
             return;
         }
 
         $invoice = $this->invoices_model->get($invoice_id);
         
-        log_activity('Invoice created - Invoice: ' . $invoice_id . ' - Course: ' . $course_id . ' - Amount: ₹' . $course['price']);
+        log_activity('Invoice created - Invoice: ' . $invoice_id . ' - Course: ' . $course_id . ' - Amount: ₹' . $course['price'] . ' - Contact: ' . $contact_id);
     }
 
+    // ✅ 12. Verify invoice was retrieved
     if (!$invoice) {
+        log_activity('Invoice retrieval failed - Invoice ID: ' . $invoice_id);
         set_alert('danger', 'Invoice not found. Please contact support.');
         redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
         return;
     }
 
-    // ✅ DIRECT PAYMENT: Load Razorpay gateway and process payment immediately
+    // ✅ 13. DIRECT PAYMENT: Load Razorpay gateway and process payment
     try {
         // Load the Razorpay payment gateway library
         $this->load->library('razor_pay_gateway');
@@ -413,13 +459,13 @@ public function purchase($course_id = null)
             'hash'      => $invoice->hash,
         ];
         
-        log_activity('Initiating Razorpay payment - Invoice: ' . $invoice_id . ' - Course: ' . $course_id . ' - Amount: ₹' . $invoice->total);
+        log_activity('Initiating Razorpay payment - Invoice: ' . $invoice_id . ' - Course: ' . $course_id . ' - Amount: ₹' . $invoice->total . ' - Contact: ' . $contact_id);
         
         // ✅ Call Razorpay's process_payment() - this will redirect to payment page
         $this->razor_pay_gateway->process_payment($payment_data);
         
     } catch (Exception $e) {
-        log_activity('Razorpay Payment Error: ' . $e->getMessage());
+        log_activity('Razorpay Payment Error - Invoice: ' . $invoice_id . ' - Error: ' . $e->getMessage());
         set_alert('danger', 'Payment processing failed: ' . $e->getMessage());
         redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
     }

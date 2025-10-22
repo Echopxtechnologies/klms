@@ -608,10 +608,10 @@ public function get_student_course_progress($student_id, $course_id)
      */
     public function count_total_students()
     {
-        $this->db->select('COUNT(DISTINCT student_id) as count');
-        $result = $this->db->get(db_prefix() . 'elearning_enrollments')->row();
-        return $result ? (int)$result->count : 0;
+        $this->db->where('active', 1);
+        return $this->db->count_all_results(db_prefix() . 'contacts');
     }
+
 
     /**
      * Count enrolled students (all enrollments)
@@ -654,13 +654,14 @@ public function get_student_course_progress($student_id, $course_id)
      */
     public function get_total_revenue()
     {
-        $this->db->select('SUM(c.price) as total_revenue');
-        $this->db->from(db_prefix() . 'elearning_enrollments e');
-        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
-        $this->db->where('e.payment_status', 'paid');
+       // Get all paid invoices related to courses
+        $this->db->select('SUM(i.total) as total_revenue');
+        $this->db->from(db_prefix() . 'invoices i');
+        $this->db->where('i.status', 2); // 2 = Paid
+        $this->db->like('i.adminnote', 'Course ID:', 'after'); // Only course-related invoices
         
         $result = $this->db->get()->row();
-        return $result && $result->total_revenue ? (float)$result->total_revenue : 0;
+        return $result && $result->total_revenue ? (float)$result->total_revenue : 0.00;
     }
 
     /**
@@ -668,15 +669,15 @@ public function get_student_course_progress($student_id, $course_id)
      */
     public function get_monthly_revenue()
     {
-        $this->db->select('SUM(c.price) as monthly_revenue');
-        $this->db->from(db_prefix() . 'elearning_enrollments e');
-        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
-        $this->db->where('e.payment_status', 'paid');
-        $this->db->where('MONTH(e.enrolled_date)', date('m'));
-        $this->db->where('YEAR(e.enrolled_date)', date('Y'));
+        $this->db->select('SUM(i.total) as monthly_revenue');
+        $this->db->from(db_prefix() . 'invoices i');
+        $this->db->where('i.status', 2); // Paid
+        $this->db->like('i.adminnote', 'Course ID:', 'after');
+        $this->db->where('MONTH(i.duedate)', date('m'));
+        $this->db->where('YEAR(i.duedate)', date('Y'));
         
         $result = $this->db->get()->row();
-        return $result && $result->monthly_revenue ? (float)$result->monthly_revenue : 0;
+        return $result && $result->monthly_revenue ? (float)$result->monthly_revenue : 0.00;
     }
 
     /**
@@ -776,95 +777,95 @@ public function get_student_course_progress($student_id, $course_id)
     /**
      * Get enrollment trend data
      */
-    public function get_enrollment_trend_data($days = 30)
-    {
-        $this->db->select('
-            DATE(enrolled_date) as date,
-            COUNT(*) as enrollments,
-            SUM(CASE WHEN payment_status = "paid" THEN 1 ELSE 0 END) as paid_enrollments
-        ');
-        $this->db->from(db_prefix() . 'elearning_enrollments');
-        $this->db->where('enrolled_date >=', date('Y-m-d', strtotime("-$days days")));
-        $this->db->group_by('DATE(enrolled_date)');
-        $this->db->order_by('date', 'ASC');
+    // public function get_enrollment_trend_data($days = 30)
+    // {
+    //     $this->db->select('
+    //         DATE(enrolled_date) as date,
+    //         COUNT(*) as enrollments,
+    //         SUM(CASE WHEN payment_status = "paid" THEN 1 ELSE 0 END) as paid_enrollments
+    //     ');
+    //     $this->db->from(db_prefix() . 'elearning_enrollments');
+    //     $this->db->where('enrolled_date >=', date('Y-m-d', strtotime("-$days days")));
+    //     $this->db->group_by('DATE(enrolled_date)');
+    //     $this->db->order_by('date', 'ASC');
         
-        return $this->db->get()->result_array();
-    }
+    //     return $this->db->get()->result_array();
+    // }
 
     /**
      * Get revenue trend data
      */
-    public function get_revenue_trend_data($months = 12)
-    {
-        $this->db->select('
-            DATE_FORMAT(e.enrolled_date, "%Y-%m") as month,
-            SUM(c.price) as revenue,
-            COUNT(e.id) as enrollments
-        ');
-        $this->db->from(db_prefix() . 'elearning_enrollments e');
-        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
-        $this->db->where('e.payment_status', 'paid');
-        $this->db->where('e.enrolled_date >=', date('Y-m-01', strtotime("-$months months")));
-        $this->db->group_by('month');
-        $this->db->order_by('month', 'ASC');
+    // public function get_revenue_trend_data($months = 12)
+    // {
+    //     $this->db->select('
+    //         DATE_FORMAT(e.enrolled_date, "%Y-%m") as month,
+    //         SUM(c.price) as revenue,
+    //         COUNT(e.id) as enrollments
+    //     ');
+    //     $this->db->from(db_prefix() . 'elearning_enrollments e');
+    //     $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+    //     $this->db->where('e.payment_status', 'paid');
+    //     $this->db->where('e.enrolled_date >=', date('Y-m-01', strtotime("-$months months")));
+    //     $this->db->group_by('month');
+    //     $this->db->order_by('month', 'ASC');
         
-        return $this->db->get()->result_array();
-    }
+    //     return $this->db->get()->result_array();
+    // }
 
     /**
      * Get category distribution
      */
-    public function get_category_distribution()
-    {
-        $this->db->select('
-            c.category,
-            COUNT(c.id) as course_count,
-            COUNT(e.id) as enrollment_count
-        ');
-        $this->db->from(db_prefix() . 'elearning_courses c');
-        $this->db->join(db_prefix() . 'elearning_enrollments e', 'e.course_id = c.id', 'left');
-        $this->db->group_by('c.category');
-        $this->db->order_by('course_count', 'DESC');
+    // public function get_category_distribution()
+    // {
+    //     $this->db->select('
+    //         c.category,
+    //         COUNT(c.id) as course_count,
+    //         COUNT(e.id) as enrollment_count
+    //     ');
+    //     $this->db->from(db_prefix() . 'elearning_courses c');
+    //     $this->db->join(db_prefix() . 'elearning_enrollments e', 'e.course_id = c.id', 'left');
+    //     $this->db->group_by('c.category');
+    //     $this->db->order_by('course_count', 'DESC');
         
-        return $this->db->get()->result_array();
-    }
+    //     return $this->db->get()->result_array();
+    // }
 
     /**
      * Get payment status distribution
      */
-    public function get_payment_status_distribution()
-    {
-        $this->db->select('
-            payment_status,
-            COUNT(*) as count
-        ');
-        $this->db->from(db_prefix() . 'elearning_enrollments');
-        $this->db->group_by('payment_status');
+    // public function get_payment_status_distribution()
+    // {
+    //     $this->db->select('
+    //         payment_status,
+    //         COUNT(*) as count
+    //     ');
+    //     $this->db->from(db_prefix() . 'elearning_enrollments');
+    //     $this->db->group_by('payment_status');
         
-        return $this->db->get()->result_array();
-    }
+    //     return $this->db->get()->result_array();
+    // }
 
     /**
      * Get recent activities
      */
-    public function get_recent_activities($limit = 15)
-    {
-        $this->db->select('
-            "enrollment" as activity_type,
-            e.enrolled_date as activity_date,
-            CONCAT(cont.firstname, " ", cont.lastname) as student_name,
-            c.title as course_title,
-            e.payment_status,
-            e.access_status
-        ');
-        $this->db->from(db_prefix() . 'elearning_enrollments e');
-        $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
-        $this->db->join(db_prefix() . 'contacts cont', 'cont.id = e.student_id', 'left');
-        $this->db->order_by('e.enrolled_date', 'DESC');
-        $this->db->limit($limit);
+    // public function get_recent_activities($limit = 15)
+    // {
+    //     $this->db->select('
+    //         "enrollment" as activity_type,
+    //         e.enrolled_date as activity_date,
+    //         CONCAT(cont.firstname, " ", cont.lastname) as student_name,
+    //         c.title as course_title,
+    //         e.payment_status,
+    //         e.access_status
+    //     ');
+    //     $this->db->from(db_prefix() . 'elearning_enrollments e');
+    //     $this->db->join(db_prefix() . 'elearning_courses c', 'c.id = e.course_id', 'left');
+    //     $this->db->join(db_prefix() . 'contacts cont', 'cont.id = e.student_id', 'left');
+    //     $this->db->order_by('e.enrolled_date', 'DESC');
+    //     $this->db->limit($limit);
         
-        return $this->db->get()->result_array();
-    }
+    //     return $this->db->get()->result_array();
+    // }
     /**
  * Get enrollment details with all related information
  */
@@ -1057,6 +1058,54 @@ public function get_all_students()
     
 //     return $this->db->get()->result_array();
 // }
+
+public function get_invoice_statistics()
+{
+    // Total invoices
+    $this->db->where('status', 2); // Paid
+    $this->db->like('adminnote', 'Course ID:', 'after');
+    $total_invoices = $this->db->count_all_results(db_prefix() . 'invoices');
+    
+    // Total revenue
+    $total_revenue = $this->get_total_revenue_from_invoices();
+    
+    // Average invoice value
+    $avg_invoice_value = $total_invoices > 0 ? ($total_revenue / $total_invoices) : 0;
+    
+    // This month's stats
+    $this->db->select('COUNT(*) as count, SUM(total) as revenue');
+    $this->db->from(db_prefix() . 'invoices');
+    $this->db->where('status', 2);
+    $this->db->like('adminnote', 'Course ID:', 'after');
+    $this->db->where('MONTH(duedate)', date('m'));
+    $this->db->where('YEAR(duedate)', date('Y'));
+    $this->month_stats = $this->db->get()->row_array();
+    
+    return [
+        'total_invoices' => $total_invoices,
+        'total_revenue' => $total_revenue,
+        'average_invoice_value' => $avg_invoice_value,
+        'monthly_invoices' => (int)$this->month_stats['count'],
+        'monthly_revenue' => (float)$this->month_stats['revenue'],
+    ];
+}
+
+/**
+ * Get total revenue from PAID INVOICES (actual payments)
+ * 
+ * @return float Total revenue
+ */
+public function get_total_revenue_from_invoices()
+{
+    // Get all paid invoices related to courses
+    $this->db->select('SUM(i.total) as total_revenue');
+    $this->db->from(db_prefix() . 'invoices i');
+    $this->db->where('i.status', 2); // 2 = Paid
+    $this->db->like('i.adminnote', 'Course ID:', 'after'); // Only course-related invoices
+    
+    $result = $this->db->get()->row();
+    return $result && $result->total_revenue ? (float)$result->total_revenue : 0.00;
+}
 
 /**
  * Check if student is already enrolled in course
