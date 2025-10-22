@@ -13,7 +13,7 @@
                                 <nav aria-label="breadcrumb">
                                     <ol class="breadcrumb">
                                         <li class="breadcrumb-item">
-                                            <a href="<?php echo admin_url('klms/Lms_admin/courses'); ?>">
+                                            <a href="<?php echo admin_url('lms/Lms_admin/courses'); ?>">
                                                 <i class="fa fa-arrow-left"></i> All Courses
                                             </a>
                                         </li>
@@ -34,7 +34,7 @@
                                 </small>
                             </div>
                             <div class="col-md-4 text-right">
-                                <a href="<?php echo admin_url('klms/Lms_admin/add_video/' . $course['id']); ?>" class="btn btn-info">
+                                <a href="<?php echo admin_url('lms/Lms_admin/add_video/' . $course['id']); ?>" class="btn btn-info">
                                     <i class="fa fa-plus-circle"></i> Add New Video
                                 </a>
                             </div>
@@ -76,10 +76,10 @@
                                                     <td><?php echo date('M d, Y', strtotime($video['created_at'])); ?></td>
                                                     <td>
                                                         <div class="row-options">
-                                                            <a href="<?php echo admin_url('klms/Lms_admin/edit_video/' . $course['id'] . '/' . $video['id']); ?>" class="text-info">
+                                                            <a href="<?php echo admin_url('lms/Lms_admin/edit_video/' . $course['id'] . '/' . $video['id']); ?>" class="text-info">
                                                                 <i class="fa fa-edit"></i> Edit
                                                             </a> | 
-                                                            <a href="<?php echo admin_url('klms/Lms_admin/delete_video/' . $course['id'] . '/' . $video['id']); ?>" 
+                                                            <a href="<?php echo admin_url('lms/Lms_admin/delete_video/' . $course['id'] . '/' . $video['id']); ?>" 
                                                                class="text-danger _delete">
                                                                 <i class="fa fa-trash"></i> Delete
                                                             </a>
@@ -97,7 +97,7 @@
                                                 <i class="fa fa-video-camera fa-3x text-muted"></i>
                                                 <h4>No videos found</h4>
                                                 <p>Start building your course by adding the first video!</p>
-                                                <a href="<?php echo admin_url('klms/Lms_admin/add_video/' . $course['id']); ?>" class="btn btn-info">
+                                                <a href="<?php echo admin_url('lms/Lms_admin/add_video/' . $course['id']); ?>" class="btn btn-info">
                                                     <i class="fa fa-plus"></i> Add First Video
                                                 </a>
                                             </div>

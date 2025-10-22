@@ -22,7 +22,7 @@
             <!-- Form Section -->
             <div class="registration-body">
             <?php
-            $base = isset($module_base_url) ? $module_base_url : 'klms/Lms_users';
+            $base = isset($module_base_url) ? $module_base_url : 'lms/Lms_users';
             $cid = isset($course_id) ? (int)$course_id : 0;
             $action = site_url($base . '/registration/' . $cid);
             $form_token = bin2hex(random_bytes(16));
@@ -203,7 +203,7 @@
 
               <!-- Action Buttons -->
               <div class="form-actions">
-                <a href="<?php echo site_url('klms/Lms_users/'); ?>" class="btn btn-default btn-lg">
+                <a href="<?php echo site_url('lms/Lms_users/'); ?>" class="btn btn-default btn-lg">
                   <i class="fa fa-arrow-left"></i> Cancel
                 </a>
                 <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
@@ -566,7 +566,7 @@ $(document).ready(function() {
 
     function checkEmailExists(email) {
   $.ajax({
-    url: '<?php echo site_url("klms/Lms_users/check_email_exists"); ?>',
+    url: '<?php echo site_url("lms/Lms_users/check_email_exists"); ?>',
     type: 'POST',
     dataType: 'json', // <-- important
     data: {

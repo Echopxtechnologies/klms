@@ -10,7 +10,7 @@
                         <h4 class="no-margin"><?php echo $title; ?></h4>
                         <hr class="hr-panel-heading" />
                         
-                        <?php echo form_open_multipart(admin_url('klms/Lms_admin/add_course')); ?>
+                        <?php echo form_open_multipart(admin_url('lms/Lms_admin/add_course')); ?>
                         
                         <div class="row">
                             <div class="col-md-8">

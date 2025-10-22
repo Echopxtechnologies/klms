@@ -173,20 +173,20 @@ if (empty($indexes)) {
 // ===================================================================
 // MODULE OPTIONS
 // ===================================================================
-if (!get_option('klms_module_version')) {
-    add_option('klms_module_version', '1.0.0');
+if (!get_option('lms_module_version')) {
+    add_option('lms_module_version', '1.0.0');
 }
 
-if (!get_option('klms_installation_date')) {
-    add_option('klms_installation_date', date('Y-m-d H:i:s'));
+if (!get_option('lms_installation_date')) {
+    add_option('lms_installation_date', date('Y-m-d H:i:s'));
 }
 
-if (!get_option('klms_show_clients_my_course_button')) {
-    add_option('klms_show_clients_my_course_button', '1');
+if (!get_option('lms_show_clients_my_course_button')) {
+    add_option('lms_show_clients_my_course_button', '1');
 }
 
-if (!get_option('klms_tab_on_clients_page')) {
-    add_option('klms_tab_on_clients_page', '1');
+if (!get_option('lms_tab_on_clients_page')) {
+    add_option('lms_tab_on_clients_page', '1');
 }
 
 // ===================================================================

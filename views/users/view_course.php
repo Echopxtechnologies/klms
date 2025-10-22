@@ -35,7 +35,7 @@ if (is_client_logged_in()) {
 }
 
 // URLs
-$module_base = 'klms/lms_users';
+$module_base = 'lms/lms_users';
 ?>
 
 <!-- Course Detail Page -->

@@ -123,7 +123,7 @@ class Elearning_user_model extends App_Model
      * @param int|null $contact_id
      * @return array
      */
-    public function get_all_courses_data($module_base_url = 'klms/Lms_users', $contact_id = null)
+    public function get_all_courses_data($module_base_url = 'lms/Lms_users', $contact_id = null)
     {
         $courses = $this->elearning_admin_model->get_all_courses();
         $categories = [];

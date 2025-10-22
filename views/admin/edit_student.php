@@ -13,7 +13,7 @@
                         </h4>
                         <hr>
 
-                        <?php echo form_open(admin_url('klms/Lms_admin/edit_student/' . $student->id), ['id' => 'edit_student_form']); ?>
+                        <?php echo form_open(admin_url('lms/Lms_admin/edit_student/' . $student->id), ['id' => 'edit_student_form']); ?>
                         
                         <div class="row">
                             <div class="col-md-6">
@@ -140,7 +140,7 @@
                         <!-- <hr> -->
 
                         <div class="form-group text-right">
-                            <a href="<?php echo admin_url('klms/Lms_admin/view_student/' . $student->id); ?>" class="btn btn-default">
+                            <a href="<?php echo admin_url('lms/Lms_admin/view_student/' . $student->id); ?>" class="btn btn-default">
                                 <i class="fa fa-times"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-primary" id="submit_btn">

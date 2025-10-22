@@ -12,10 +12,10 @@ $CI = &get_instance();
 // ===================================================================
 // REMOVE MODULE OPTIONS
 // ===================================================================
-delete_option('klms_show_clients_my_course_button');
-delete_option('klms_tab_on_clients_page');
-delete_option('klms_module_version');
-delete_option('klms_installation_date');
+delete_option('lms_show_clients_my_course_button');
+delete_option('lms_tab_on_clients_page');
+delete_option('lms_module_version');
+delete_option('lms_installation_date');
 
 log_activity('E-Learning: Removed module options');
 
@@ -91,7 +91,7 @@ if (is_dir($upload_dir)) {
 // ===================================================================
 // REMOVE PERMISSIONS
 // ===================================================================
-$CI->db->where('shortname', 'klms');
+$CI->db->where('shortname', 'lms');
 
 log_activity('E-Learning: Removed module permissions');
 

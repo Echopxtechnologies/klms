@@ -7,7 +7,7 @@
 $CI = &get_instance();
 
 // Get current module version
-$current_version = get_option('klms_module_version') ?: '0.0.0';
+$current_version = get_option('lms_module_version') ?: '0.0.0';
 
 // Upgrade to version 1.1.0 - Add unique email constraint
 if (version_compare($current_version, '1.1.0', '<')) {
@@ -46,5 +46,5 @@ if (version_compare($current_version, '1.1.0', '<')) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;');
     }
     
-    update_option('klms_module_version', '1.1.0');
+    update_option('lms_module_version', '1.1.0');
 }

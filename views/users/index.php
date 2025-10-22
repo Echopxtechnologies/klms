@@ -9,7 +9,7 @@
             <div class="panel_s">
                 <div class="panel-body">
                     <h5><i class="fa fa-search"></i> Search Courses</h5>
-                    <form id="search-form" method="get" action="<?php echo site_url('klms/lms_users/search'); ?>">
+                    <form id="search-form" method="get" action="<?php echo site_url('lms/lms_users/search'); ?>">
                         <div class="input-group">
                             <input type="text" 
                                    class="form-control" 
@@ -47,7 +47,7 @@
                         <?php if (!empty($categories)): ?>
                             <?php foreach ($categories as $category): ?>
                                 <div class="category-item <?php echo ($this->input->get('category') == $category['category']) ? 'active' : ''; ?>">
-                                    <a href="<?php echo site_url('klms/lms_users/category/' . urlencode($category['category'])); ?>" 
+                                    <a href="<?php echo site_url('lms/lms_users/category/' . urlencode($category['category'])); ?>" 
                                        class="category-link">
                                         <i class="fa fa-folder"></i>
                                         <span><?php echo html_escape($category['category']); ?></span>
@@ -72,19 +72,19 @@
                             </a>
                         </div>
                         <div class="level-item <?php echo ($this->input->get('level') == 'Beginner') ? 'active' : ''; ?>">
-                            <a href="<?php echo site_url('klms/lms_users') . '?level=Beginner'; ?>" class="level-link">
+                            <a href="<?php echo site_url('lms/lms_users') . '?level=Beginner'; ?>" class="level-link">
                                 <i class="fa fa-circle-o"></i>
                                 <span>Beginner</span>
                             </a>
                         </div>
                         <div class="level-item <?php echo ($this->input->get('level') == 'Intermediate') ? 'active' : ''; ?>">
-                            <a href="<?php echo site_url('klms/lms_users') . '?level=Intermediate'; ?>" class="level-link">
+                            <a href="<?php echo site_url('lms/lms_users') . '?level=Intermediate'; ?>" class="level-link">
                                 <i class="fa fa-adjust"></i>
                                 <span>Intermediate</span>
                             </a>
                         </div>
                         <div class="level-item <?php echo ($this->input->get('level') == 'Advanced') ? 'active' : ''; ?>">
-                            <a href="<?php echo site_url('klms/lms_users') . '?level=Advanced'; ?>" class="level-link">
+                            <a href="<?php echo site_url('lms/lms_users') . '?level=Advanced'; ?>" class="level-link">
                                 <i class="fa fa-circle"></i>
                                 <span>Advanced</span>
                             </a>
@@ -105,13 +105,13 @@
                             </a>
                         </div>
                         <div class="price-item <?php echo ($this->input->get('price_type') == 'free') ? 'active' : ''; ?>">
-                            <a href="<?php echo site_url('klms/lms_users') . '?price_type=free'; ?>" class="price-link">
+                            <a href="<?php echo site_url('lms/lms_users') . '?price_type=free'; ?>" class="price-link">
                                 <i class="fa fa-gift"></i>
                                 <span>Free Courses</span>
                             </a>
                         </div>
                         <div class="price-item <?php echo ($this->input->get('price_type') == 'paid') ? 'active' : ''; ?>">
-                            <a href="<?php echo site_url('klms/lms_users') . '?price_type=paid'; ?>" class="price-link">
+                            <a href="<?php echo site_url('lms/lms_users') . '?price_type=paid'; ?>" class="price-link">
                                 <i class="fa fa-credit-card"></i>
                                 <span>Paid Courses</span>
                             </a>
@@ -264,7 +264,7 @@
                                         <?php echo html_escape($course['category']); ?>
                                     </div>
                                     <div class="course-action">
-                                        <a href="<?php echo site_url('klms/lms_users/view_course/' . $course['id']); ?>" 
+                                        <a href="<?php echo site_url('lms/lms_users/view_course/' . $course['id']); ?>" 
                                            class="btn btn-primary btn-sm">
                                             <i class="fa fa-eye"></i> View Course
                                         </a>
@@ -291,7 +291,7 @@
                             <!-- Course Info -->
                             <div class="panel-body course-info">
                                 <h4 class="course-title">
-                                    <a href="<?php echo site_url('klms/lms_users/view_course/' . $course['id']); ?>">
+                                    <a href="<?php echo site_url('lms/lms_users/view_course/' . $course['id']); ?>">
                                         <?php echo html_escape($course['title']); ?>
                                     </a>
                                 </h4>
@@ -327,7 +327,7 @@
                                 </div>
                                 
                                 <div class="course-actions">
-                                    <a href="<?php echo site_url('klms/lms_users/view_course/' . $course['id']); ?>" 
+                                    <a href="<?php echo site_url('lms/lms_users/view_course/' . $course['id']); ?>" 
                                        class="btn btn-primary btn-block">
                                         <i class="fa fa-play"></i> Start Learning
                                     </a>
@@ -374,7 +374,7 @@
                                                 </td>
                                                 <td>
                                                     <strong>
-                                                        <a href="<?php echo site_url('klms/lms_users/view_course/' . $course['id']); ?>">
+                                                        <a href="<?php echo site_url('lms/lms_users/view_course/' . $course['id']); ?>">
                                                             <?php echo html_escape($course['title']); ?>
                                                         </a>
                                                     </strong>
@@ -425,7 +425,7 @@
                                                     </small>
                                                 </td>
                                                 <td>
-                                                    <a href="<?php echo site_url('klms/lms_users/view_course/' . $course['id']); ?>" 
+                                                    <a href="<?php echo site_url('lms/lms_users/view_course/' . $course['id']); ?>" 
                                                        class="btn btn-primary btn-xs">
                                                         <i class="fa fa-eye"></i> View
                                                     </a>
@@ -1151,7 +1151,7 @@ $(document).ready(function() {
     // Load search suggestions
     function loadSearchSuggestions(term) {
         $.ajax({
-            url: '<?php echo site_url('klms/lms_users/ajax_search_suggestions'); ?>',
+            url: '<?php echo site_url('lms/lms_users/ajax_search_suggestions'); ?>',
             type: 'GET',
             data: { term: term },
             dataType: 'json',

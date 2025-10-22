@@ -10,7 +10,7 @@
             <h4 class="bold"><i class="fa fa-edit"></i> Edit Enrollment</h4>
             <hr class="hr-panel-heading">
 
-            <form id="editEnrollmentForm" method="post" action="<?php echo admin_url('klms/Lms_admin/update_enrollment'); ?>">
+            <form id="editEnrollmentForm" method="post" action="<?php echo admin_url('lms/Lms_admin/update_enrollment'); ?>">
               <input type="hidden" name="id" value="<?php echo $enrollment->id; ?>">
 
               <div class="form-group">
@@ -81,7 +81,7 @@
               </div>
 
               <div class="text-right mtop20">
-                <a href="<?php echo admin_url('klms/Lms_admin/enrollments'); ?>" class="btn btn-default">
+                <a href="<?php echo admin_url('lms/Lms_admin/enrollments'); ?>" class="btn btn-default">
                   <i class="fa fa-arrow-left"></i> Back
                 </a>
                 <button type="submit" class="btn btn-info">
@@ -115,7 +115,7 @@ $(function() {
       if (res.success) {
         alert_float('success', res.message);
         setTimeout(() => {
-          window.location.href = admin_url + 'klms/Lms_admin/enrollments';
+          window.location.href = admin_url + 'lms/Lms_admin/enrollments';
         }, 1000);
       } else {
         alert_float('danger', res.message);

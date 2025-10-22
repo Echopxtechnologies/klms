@@ -7,7 +7,7 @@ class Lms_admin extends AdminController
     {
         parent::__construct();
         $this->load->model('elearning_admin_model'); // class elearning_admin_model
-        $this->load->language('klms', 'english');
+        $this->load->language('lms', 'english');
         $this->load->model('clients_model');
         $this->load->model('authentication_model');
     }
@@ -127,9 +127,9 @@ public function enrollments_table()
             'access_status'  => ucfirst($row['access_status']),
             'actions'        => '
                 <div class="text-right nowrap">
-                    <a href="' . admin_url('klms/Lms_admin/enrollment/' . $row['id']) . '" 
+                    <a href="' . admin_url('lms/Lms_admin/enrollment/' . $row['id']) . '" 
                        class="btn btn-default btn-icon" title="Edit"><i class="fa fa-pencil-square-o"></i></a>
-                    <a href="' . admin_url('klms/Lms_admin/delete_enrollment/' . $row['id']) . '" 
+                    <a href="' . admin_url('lms/Lms_admin/delete_enrollment/' . $row['id']) . '" 
                        class="btn btn-danger btn-icon _delete" title="Delete"><i class="fa fa-trash"></i></a>
                 </div>'
         ];
@@ -167,7 +167,7 @@ public function enrollment($id = '')
             if ($success) {
                 set_alert('success', 'Enrollment updated successfully');
                 // echo json_encode(['success' => true, 'message' => 'Enrollment updated successfully']);
-                redirect(admin_url('klms/Lms_admin/enrollments'));
+                redirect(admin_url('lms/Lms_admin/enrollments'));
             } else {
                 echo json_encode(['success' => false, 'message' => 'Failed to update enrollment']);
             }
@@ -208,7 +208,7 @@ public function delete_enrollment($id)
         set_alert('danger', 'Failed to delete enrollment');
     }
     
-    redirect(admin_url('klms/Lms_admin/enrollments'));
+    redirect(admin_url('lms/Lms_admin/enrollments'));
 }
 
 /**
@@ -260,7 +260,7 @@ public function get_enrollments()
             'payment_status' => ucfirst($row['payment_status']),
             'access_status' => ucfirst($row['access_status']),
             'payment_reference' => $row['payment_reference'],
-            'actions' => '<a href="' . admin_url('klms/Lms_admin/enrollment/' . $row['id']) . '" class="btn btn-sm btn-default">
+            'actions' => '<a href="' . admin_url('lms/Lms_admin/enrollment/' . $row['id']) . '" class="btn btn-sm btn-default">
                             <i class="fa fa-pencil"></i>
                           </a>
                           <a href="#" onclick="deleteEnrollment(' . $row['id'] . ')" class="btn btn-sm btn-danger">
@@ -301,7 +301,7 @@ public function edit_enrollment($id = '')
 {
     if (empty($id)) {
         set_alert('warning', 'Invalid enrollment ID');
-        redirect(admin_url('klms/Lms_admin/enrollments'));
+        redirect(admin_url('lms/Lms_admin/enrollments'));
     }
 
     // Fetch existing enrollment
@@ -314,7 +314,7 @@ public function edit_enrollment($id = '')
 
     if (!$enrollment) {
         set_alert('warning', 'Enrollment not found');
-        redirect(admin_url('klms/Lms_admin/enrollments'));
+        redirect(admin_url('lms/Lms_admin/enrollments'));
     }
 
     // Fetch dropdown options
@@ -364,7 +364,7 @@ public function update_enrollment_status()
     public function courses()
 {
     $data['courses'] = $this->elearning_admin_model->get_all_courses();
-    $data['title']   = _l('klms_courses'); // Use language helper
+    $data['title']   = _l('lms_courses'); // Use language helper
     // $this->load->view('admin/add_course', $data); // Keep your existing view path
     $this->load->view('admin/manage_course', $data);
 }
@@ -397,7 +397,7 @@ public function add_course()
                 $course_data['cover_image'] = 'uploads/courses/' . $upload_data['file_name'];
             } else {
                 set_alert('warning', 'Image upload failed: ' . $this->upload->display_errors());
-                redirect(admin_url('klms/Lms_admin/add_course'));
+                redirect(admin_url('lms/Lms_admin/add_course'));
                 return;
             }
         }
@@ -408,7 +408,7 @@ public function add_course()
             set_alert('warning', 'Error adding course');
         }
         
-        redirect(admin_url('klms/Lms_admin/courses'));
+        redirect(admin_url('lms/Lms_admin/courses'));
     }
 
     $data['title'] = 'Add New Course';
@@ -489,7 +489,7 @@ public function edit_course($course_id = '')
             set_alert('warning', 'Error updating course');
         }
         
-        redirect(admin_url('klms/Lms_admin/edit_course/' . $course_id));
+        redirect(admin_url('lms/Lms_admin/edit_course/' . $course_id));
     }
 
     $data['course'] = $course;
@@ -541,7 +541,7 @@ public function edit_course($course_id = '')
             } else {
                 set_alert('warning', 'Error adding video');
             }
-            redirect(admin_url('klms/Lms_admin/manage_videos/' . $course_id));
+            redirect(admin_url('lms/Lms_admin/manage_videos/' . $course_id));
         }
 
         $data['course'] = $course;
@@ -573,7 +573,7 @@ public function edit_course($course_id = '')
             } else {
                 set_alert('warning', 'Error updating video');
             }
-            redirect(admin_url('klms/Lms_admin/manage_videos/' . $course_id));
+            redirect(admin_url('lms/Lms_admin/manage_videos/' . $course_id));
         }
 
         $data['course'] = $course;
@@ -597,7 +597,7 @@ public function edit_course($course_id = '')
             set_alert('warning', 'Error deleting video');
         }
         
-        redirect(admin_url('klms/Lms_admin/manage_videos/' . $course_id));
+        redirect(admin_url('lms/Lms_admin/manage_videos/' . $course_id));
     }
 
 
@@ -615,7 +615,7 @@ public function add_student()
             set_alert('warning', 'Error creating student account');
         }
         
-        redirect(admin_url('klms/Lms_admin/students'));
+        redirect(admin_url('lms/Lms_admin/students'));
     }
 
     $data['title'] = 'Add New Student';
@@ -651,7 +651,7 @@ public function view_student($student_id = null)
     
     if (!$student) {
         set_alert('warning', 'Student not found');
-        redirect(admin_url('klms/Lms_admin/students'));
+        redirect(admin_url('lms/Lms_admin/students'));
         return;
     }
 
@@ -704,7 +704,7 @@ public function edit_student($student_id = null)
     
     if (!$student) {
         set_alert('warning', 'Student not found');
-        redirect(admin_url('klms/Lms_admin/students'));
+        redirect(admin_url('lms/Lms_admin/students'));
         return;
     }
 
@@ -717,7 +717,7 @@ public function edit_student($student_id = null)
         
         if ($success) {
             set_alert('success', 'Student updated successfully');
-            redirect(admin_url('klms/Lms_admin/view_student/' . $student_id));
+            redirect(admin_url('lms/Lms_admin/view_student/' . $student_id));
         } else {
             set_alert('danger', 'Failed to update student. Please try again.');
         }
@@ -934,7 +934,7 @@ public function export_students()
     
     if (empty($students)) {
         set_alert('warning', 'No students to export');
-        redirect(admin_url('klms/Lms_admin/students'));
+        redirect(admin_url('lms/Lms_admin/students'));
         return;
     }
 

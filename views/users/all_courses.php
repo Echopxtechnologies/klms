@@ -27,7 +27,7 @@
         <!-- Breadcrumb -->
         <nav aria-label="breadcrumb" style="margin-bottom:10px;">
           <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="<?php echo site_url('klms/Lms_users/dashboard'); ?>">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="<?php echo site_url('lms/Lms_users/dashboard'); ?>">Dashboard</a></li>
             <li class="breadcrumb-item active">All Courses</li>
           </ol>
         </nav>

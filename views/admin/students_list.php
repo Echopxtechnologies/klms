@@ -9,7 +9,7 @@
                     <div class="panel-body">
                         <!-- Header Actions -->
                         <div class="_buttons">
-                            <a href="<?php echo admin_url('klms/Lms_admin/add_student'); ?>" class="btn btn-info pull-left">
+                            <a href="<?php echo admin_url('lms/Lms_admin/add_student'); ?>" class="btn btn-info pull-left">
                                 <i class="fa fa-plus-circle"></i> Add New Student
                             </a>
                             <a href="#" class="btn btn-default pull-left mleft5" onclick="exportStudents(); return false;">
@@ -93,7 +93,7 @@
                                                     </div>
                                                     <div class="student-details">
                                                         <strong class="student-name">
-                                                            <a href="<?php echo admin_url('klms/Lms_admin/view_student/' . $student['id']); ?>">
+                                                            <a href="<?php echo admin_url('lms/Lms_admin/view_student/' . $student['id']); ?>">
                                                                 <?php echo html_escape($student['firstname'] . ' ' . $student['lastname']); ?>
                                                             </a>
                                                         </strong>
@@ -146,13 +146,13 @@
                                             </td>
                                             <td class="text-center">
                                                 <div class="btn-group">
-                                                    <a href="<?php echo admin_url('klms/Lms_admin/view_student/' . $student['id']); ?>" 
+                                                    <a href="<?php echo admin_url('lms/Lms_admin/view_student/' . $student['id']); ?>" 
                                                        class="btn btn-default btn-sm" 
                                                        data-toggle="tooltip" 
                                                        title="View Details">
                                                         <i class="fa fa-eye"></i>
                                                     </a>
-                                                    <a href="<?php echo admin_url('klms/Lms_admin/edit_student/' . $student['id']); ?>" 
+                                                    <a href="<?php echo admin_url('lms/Lms_admin/edit_student/' . $student['id']); ?>" 
                                                        class="btn btn-info btn-sm" 
                                                        data-toggle="tooltip" 
                                                        title="Edit Student">
@@ -209,7 +209,7 @@
                                 <i class="fa fa-users" style="font-size: 80px; color: #ddd;"></i>
                                 <h3 class="text-muted">No students found</h3>
                                 <p class="text-muted">Start building your student base by adding the first student!</p>
-                                <a href="<?php echo admin_url('klms/Lms_admin/add_student'); ?>" class="btn btn-info btn-lg mtop20">
+                                <a href="<?php echo admin_url('lms/Lms_admin/add_student'); ?>" class="btn btn-info btn-lg mtop20">
                                     <i class="fa fa-plus"></i> Add First Student
                                 </a>
                             </div>
@@ -517,7 +517,7 @@ function toggleStudentStatus(studentId, currentStatus) {
     
     if (confirm(confirmMsg)) {
         $.ajax({
-            url: admin_url + 'klms/Lms_admin/toggle_student_status/' + studentId,
+            url: admin_url + 'lms/Lms_admin/toggle_student_status/' + studentId,
             type: 'POST',
             dataType: 'json',
             success: function(response) {
@@ -556,7 +556,7 @@ function toggleStudentStatus(studentId, currentStatus) {
 function deleteStudent(studentId, studentName) {
     if (confirm('Are you sure you want to delete ' + studentName + '? This action cannot be undone.')) {
         $.ajax({
-            url: admin_url + 'klms/Lms_admin/delete_student/' + studentId,
+            url: admin_url + 'lms/Lms_admin/delete_student/' + studentId,
             type: 'POST',
             dataType: 'json',
             success: function(response) {
@@ -631,7 +631,7 @@ function getSelectedStudentIds() {
 // Bulk Action Handler
 function bulkAction(action, studentIds) {
     $.ajax({
-        url: admin_url + 'klms/Lms_admin/bulk_action',
+        url: admin_url + 'lms/Lms_admin/bulk_action',
         type: 'POST',
         data: {
             action: action,
@@ -655,7 +655,7 @@ function bulkAction(action, studentIds) {
 
 // Export Students
 function exportStudents() {
-    window.location.href = admin_url + 'klms/Lms_admin/export_students';
+    window.location.href = admin_url + 'lms/Lms_admin/export_students';
 }
 
 // Update Student Count

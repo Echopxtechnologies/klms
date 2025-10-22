@@ -2,24 +2,24 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /*
-Module Name: KLMS
+Module Name: lms
 Description: Adds a "My Course" item in the client theme menu (guest + logged-in), like Appointly's Schedule Appointment.
 Version: 1.0.4
 Author: Raju
 */
 
-define('KLMS_MODULE_NAME', 'klms');
+define('lms_MODULE_NAME', 'lms');
 
 if (function_exists('register_language_files')) {
-    register_language_files(KLMS_MODULE_NAME, ['klms']);
+    register_language_files(lms_MODULE_NAME, ['lms']);
 }
 
-$helper = __DIR__ . '/helpers/klms_helper.php';
+$helper = __DIR__ . '/helpers/lms_helper.php';
 if (file_exists($helper)) {
     require_once $helper;
 }
-if (!function_exists('klms_module_init_menu_items')) {
-    require_once __DIR__ . '/klms.php';
+if (!function_exists('lms_module_init_menu_items')) {
+    require_once __DIR__ . '/lms.php';
 }
 
 
@@ -46,11 +46,11 @@ hooks()->add_action('app_customers_head', function () {
 
 // Add "Dashboard" nav item (only after login; not on login page)
 hooks()->add_action('app_customers_head', function () {
-    $dashboardUrl = site_url('klms/Lms_users/dashboard');
+    $dashboardUrl = site_url('lms/Lms_users/dashboard');
     echo '
     <style>
       /* Dashboard Button Styling */
-      .navbar .navbar-right .klms-dashboard-btn {
+      .navbar .navbar-right .lms-dashboard-btn {
         background-color: #0d6efd; /* Perfex Primary Blue */
         color: #fff !important;
         border-radius: 6px;
@@ -59,12 +59,12 @@ hooks()->add_action('app_customers_head', function () {
         font-weight: 500;
         transition: all 0.3s ease;
       }
-      .navbar .navbar-right .klms-dashboard-btn:hover {
+      .navbar .navbar-right .lms-dashboard-btn:hover {
         background-color: #084298; /* Darker on hover */
         text-decoration: none;
       }
       /* For dark themes or transparent headers */
-      .navbar.navbar-default .klms-dashboard-btn {
+      .navbar.navbar-default .lms-dashboard-btn {
         border: 1px solid rgba(255, 255, 255, 0.2);
       }
     </style>
@@ -76,16 +76,16 @@ hooks()->add_action('app_customers_head', function () {
         if (!rightNav || !hasProfile) return;
 
         // Don\'t duplicate
-        if (document.querySelector("li.customers-nav-item-klms-dashboard")) return;
+        if (document.querySelector("li.customers-nav-item-lms-dashboard")) return;
 
         // Build proper <li><a></a></li>
         var li = document.createElement("li");
-        li.className = "customers-nav-item-klms-dashboard";
+        li.className = "customers-nav-item-lms-dashboard";
         var a = document.createElement("a");
         a.href = "' . $dashboardUrl . '";
         a.textContent = "Dashboard";
         // If you want it styled like a button, keep class below; else remove it for a normal link
-        a.className = "btn btn-primary klms-dashboard-btn";
+        a.className = "btn btn-primary lms-dashboard-btn";
         li.appendChild(a);
 
         // Put it first on the right side
@@ -98,76 +98,76 @@ hooks()->add_action('app_customers_head', function () {
 
 
 
-register_activation_hook(KLMS_MODULE_NAME, 'klms_module_activate');
-register_deactivation_hook(KLMS_MODULE_NAME, 'klms_module_deactivate');
-register_uninstall_hook(KLMS_MODULE_NAME, 'klms_module_uninstall');
+register_activation_hook(lms_MODULE_NAME, 'lms_module_activate');
+register_deactivation_hook(lms_MODULE_NAME, 'lms_module_deactivate');
+register_uninstall_hook(lms_MODULE_NAME, 'lms_module_uninstall');
 
 // Try hook priority -10 (earlier execution)
-hooks()->add_action('admin_init', 'klms_module_init_menu_items', -10);
+hooks()->add_action('admin_init', 'lms_module_init_menu_items', -10);
 
 // AND add a fallback hook:
-hooks()->add_action('after_admin_init', 'klms_module_init_menu_items', 1);
+hooks()->add_action('after_admin_init', 'lms_module_init_menu_items', 1);
 
 
-function klms_module_activate()
+function lms_module_activate()
 {
     require_once __DIR__ . '/install.php';
-    if (function_exists('klms_do_install')) {
-        klms_do_install();
+    if (function_exists('lms_do_install')) {
+        lms_do_install();
     }
-    if (!get_option('klms_show_clients_my_course_button')) {
-        add_option('klms_show_clients_my_course_button', 1);
+    if (!get_option('lms_show_clients_my_course_button')) {
+        add_option('lms_show_clients_my_course_button', 1);
     }
-    if (!get_option('klms_tab_on_clients_page')) {
-        add_option('klms_tab_on_clients_page', 1);
+    if (!get_option('lms_tab_on_clients_page')) {
+        add_option('lms_tab_on_clients_page', 1);
     }
 }
 
-function klms_module_deactivate() {}
+function lms_module_deactivate() {}
 
-function klms_module_uninstall()
+function lms_module_uninstall()
 {
     require_once __DIR__ . '/uninstall.php';
-    if (function_exists('klms_uninstall_run')) {
-        klms_uninstall_run();
+    if (function_exists('lms_uninstall_run')) {
+        lms_uninstall_run();
     }
 }
 
-function klms_module_init_menu_items()
+function lms_module_init_menu_items()
 {
     $CI = &get_instance();
 
     // Parent menu -> valid admin page
-    $CI->app_menu->add_sidebar_menu_item('klms', [
-        'name'     => _l('klms_menu_title'),
-        'href'     => admin_url('klms/Lms_admin/courses'), // ✅ valid target
+    $CI->app_menu->add_sidebar_menu_item('lms', [
+        'name'     => _l('lms_menu_title'),
+        'href'     => admin_url('lms/Lms_admin/courses'), // ✅ valid target
         'position' => 30,
         'icon'     => 'fa fa-graduation-cap',
     ]);
 
     // Submenus
-    $CI->app_menu->add_sidebar_children_item('klms', [
-        'slug'     => 'klms_dashboard',
-        'name'     => _l('klms_dashboard'),
-        'href'     => admin_url('klms/Lms_admin/dashboard'),
+    $CI->app_menu->add_sidebar_children_item('lms', [
+        'slug'     => 'lms_dashboard',
+        'name'     => _l('lms_dashboard'),
+        'href'     => admin_url('lms/Lms_admin/dashboard'),
         'position' => 1,
     ]);
-    $CI->app_menu->add_sidebar_children_item('klms', [
-        'slug'     => 'klms_courses',
-        'name'     => _l('klms_courses'),
-        'href'     => admin_url('klms/Lms_admin/courses'),
+    $CI->app_menu->add_sidebar_children_item('lms', [
+        'slug'     => 'lms_courses',
+        'name'     => _l('lms_courses'),
+        'href'     => admin_url('lms/Lms_admin/courses'),
         'position' => 2,
     ]);
-        $CI->app_menu->add_sidebar_children_item('klms', [
-        'slug'     => 'klms_students',
-        'name'     => _l('klms_students'),
-        'href'     => admin_url('klms/Lms_admin/students'),
+        $CI->app_menu->add_sidebar_children_item('lms', [
+        'slug'     => 'lms_students',
+        'name'     => _l('lms_students'),
+        'href'     => admin_url('lms/Lms_admin/students'),
         'position' => 3,
     ]);
-    $CI->app_menu->add_sidebar_children_item('klms', [
-            'slug'     => 'klms_enrollments',
-            'name'     => _l('klms_enrollments'),
-            'href'     => admin_url('klms/Lms_admin/enrollments'),
+    $CI->app_menu->add_sidebar_children_item('lms', [
+            'slug'     => 'lms_enrollments',
+            'name'     => _l('lms_enrollments'),
+            'href'     => admin_url('lms/Lms_admin/enrollments'),
             'position' => 4,
         ]);
 

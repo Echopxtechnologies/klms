@@ -15,16 +15,16 @@
                             </div>
                             <div class="col-md-4 text-right">
                                 <div class="btn-group">
-                                    <a href="<?php echo admin_url('klms/Lms_admin/add_course'); ?>" class="btn btn-primary">
+                                    <a href="<?php echo admin_url('lms/Lms_admin/add_course'); ?>" class="btn btn-primary">
                                         <i class="fa fa-plus"></i> Add Course
                                     </a>
                                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         <span class="caret"></span>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-right">
-                                        <li><a href="<?php echo admin_url('klms/Lms_admin/courses'); ?>"><i class="fa fa-graduation-cap"></i> Manage Courses</a></li>
-                                        <li><a href="<?php echo admin_url('klms/Lms_admin/students'); ?>"><i class="fa fa-users"></i> View Students</a></li>
-                                        <li><a href="<?php echo admin_url('klms/Lms_admin/enrollments'); ?>"><i class="fa fa-list"></i> View Enrollments</a></li>
+                                        <li><a href="<?php echo admin_url('lms/Lms_admin/courses'); ?>"><i class="fa fa-graduation-cap"></i> Manage Courses</a></li>
+                                        <li><a href="<?php echo admin_url('lms/Lms_admin/students'); ?>"><i class="fa fa-users"></i> View Students</a></li>
+                                        <li><a href="<?php echo admin_url('lms/Lms_admin/enrollments'); ?>"><i class="fa fa-list"></i> View Enrollments</a></li>
                                         <li role="separator" class="divider"></li>
                                     </ul>
                                 </div>
@@ -50,7 +50,7 @@
                             <small><?php echo $stats['active_courses']; ?> Active</small>
                         </div>
                     </div>
-                    <a href="<?php echo admin_url('klms/Lms_admin/courses'); ?>" class="stat-footer">
+                    <a href="<?php echo admin_url('lms/Lms_admin/courses'); ?>" class="stat-footer">
                         View Courses <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
@@ -64,12 +64,12 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value"><?php echo $stats['total_students']; ?></div>
-                        <div class="stat-label">Total Students</div>
+                        <div class="stat-label">Total Active Students</div>
                         <div class="stat-detail">
                             <small><?php echo $stats['enrolled_students']; ?> Enrollments</small>
                         </div>
                     </div>
-                    <a href="<?php echo admin_url('klms/Lms_admin/students'); ?>" class="stat-footer">
+                    <a href="<?php echo admin_url('lms/Lms_admin/students'); ?>" class="stat-footer">
                         View Students <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
@@ -107,7 +107,7 @@
                             <small><?php echo $stats['pending_payments']; ?> Pending</small>
                         </div>
                     </div>
-                    <a href="<?php echo admin_url('klms/Lms_admin/enrollments'); ?>" class="stat-footer">
+                    <a href="<?php echo admin_url('lms/Lms_admin/enrollments'); ?>" class="stat-footer">
                         Manage <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
@@ -124,7 +124,7 @@
                         </h4>
                         <div class="row">
                             <div class="col-md-3 col-sm-6">
-                                <a href="<?php echo admin_url('klms/Lms_admin/add_course'); ?>" class="quick-action-card">
+                                <a href="<?php echo admin_url('lms/Lms_admin/add_course'); ?>" class="quick-action-card">
                                     <div class="quick-action-icon bg-primary">
                                         <i class="fa fa-plus"></i>
                                     </div>
@@ -135,7 +135,7 @@
                                 </a>
                             </div>
                             <div class="col-md-3 col-sm-6">
-                                <a href="<?php echo admin_url('klms/Lms_admin/courses'); ?>" class="quick-action-card">
+                                <a href="<?php echo admin_url('lms/Lms_admin/courses'); ?>" class="quick-action-card">
                                     <div class="quick-action-icon bg-info">
                                         <i class="fa fa-graduation-cap"></i>
                                     </div>
@@ -146,7 +146,7 @@
                                 </a>
                             </div>
                             <div class="col-md-3 col-sm-6">
-                                <a href="<?php echo admin_url('klms/Lms_admin/students'); ?>" class="quick-action-card">
+                                <a href="<?php echo admin_url('lms/Lms_admin/students'); ?>" class="quick-action-card">
                                     <div class="quick-action-icon bg-success">
                                         <i class="fa fa-users"></i>
                                     </div>
@@ -157,7 +157,7 @@
                                 </a>
                             </div>
                             <div class="col-md-3 col-sm-6">
-                                <a href="<?php echo admin_url('klms/Lms_admin/enrollments'); ?>" class="quick-action-card">
+                                <a href="<?php echo admin_url('lms/Lms_admin/enrollments'); ?>" class="quick-action-card">
                                     <div class="quick-action-icon bg-warning">
                                         <i class="fa fa-list"></i>
                                     </div>

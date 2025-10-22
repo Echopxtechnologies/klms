@@ -13,7 +13,7 @@
                                 <nav aria-label="breadcrumb">
                                     <ol class="breadcrumb">
                                         <li class="breadcrumb-item">
-                                            <a href="<?php echo admin_url('klms/Lms_admin/students'); ?>">
+                                            <a href="<?php echo admin_url('lms/Lms_admin/students'); ?>">
                                                 <i class="fa fa-arrow-left"></i> All Students
                                             </a>
                                         </li>
@@ -26,7 +26,7 @@
                         <h4 class="no-margin"><?php echo $title; ?></h4>
                         <hr class="hr-panel-heading" />
                         
-                        <?php echo form_open(admin_url('klms/Lms_admin/add_student')); ?>
+                        <?php echo form_open(admin_url('lms/Lms_admin/add_student')); ?>
                         
                         <div class="row">
                             <div class="col-md-8">
@@ -129,7 +129,7 @@
                         </div>
 
                         <div class="btn-bottom-toolbar text-right">
-                            <a href="<?php echo admin_url('klms/Lms_admin/students'); ?>" class="btn btn-default">
+                            <a href="<?php echo admin_url('lms/Lms_admin/students'); ?>" class="btn btn-default">
                                 <i class="fa fa-arrow-left"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-info">

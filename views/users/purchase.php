@@ -11,8 +11,8 @@ $taxRatePct = 0;               // e.g. 18 for 18%
 $taxAmount  = $price * ($taxRatePct / 100);
 $total      = $price + $taxAmount;
 
-$backUrl    = site_url('klms/lms_users/view_course/' . $courseId);
-$successUrl = site_url('klms/lms_users/payment_success/' . $courseId);
+$backUrl    = site_url('lms/lms_users/view_course/' . $courseId);
+$successUrl = site_url('lms/lms_users/payment_success/' . $courseId);
 ?>
 
 <div class="content">

@@ -28,10 +28,10 @@
                                 </p>
                             </div>
                             <div class="col-md-4 text-right">
-                                <a href="<?php echo admin_url('klms/Lms_admin/edit_student/' . $student->id); ?>" class="btn btn-info">
+                                <a href="<?php echo admin_url('lms/Lms_admin/edit_student/' . $student->id); ?>" class="btn btn-info">
                                     <i class="fa fa-edit"></i> Edit Student
                                 </a>
-                                <a href="<?php echo admin_url('klms/Lms_admin/students'); ?>" class="btn btn-default">
+                                <a href="<?php echo admin_url('lms/Lms_admin/students'); ?>" class="btn btn-default">
                                     <i class="fa fa-arrow-left"></i> Back to List
                                 </a>
                             </div>

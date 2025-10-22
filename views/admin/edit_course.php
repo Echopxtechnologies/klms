@@ -13,7 +13,7 @@
                                 <nav aria-label="breadcrumb">
                                     <ol class="breadcrumb">
                                         <li class="breadcrumb-item">
-                                            <a href="<?php echo admin_url('klms/Lms_admin/courses'); ?>">
+                                            <a href="<?php echo admin_url('lms/Lms_admin/courses'); ?>">
                                                 <i class="fa fa-arrow-left"></i> All Courses
                                             </a>
                                         </li>
@@ -26,7 +26,7 @@
                         <h4 class="no-margin"><?php echo $title; ?></h4>
                         <hr class="hr-panel-heading" />
                         
-                        <?php echo form_open_multipart(admin_url('klms/Lms_admin/edit_course/' . $course['id'])); ?>
+                        <?php echo form_open_multipart(admin_url('lms/Lms_admin/edit_course/' . $course['id'])); ?>
                         
                         <div class="row">
                             <div class="col-md-8">
@@ -179,7 +179,7 @@
                                 <div class="panel panel-default">
                                     <div class="panel-heading">Course Actions</div>
                                     <div class="panel-body">
-                                        <a href="<?php echo admin_url('klms/Lms_admin/manage_videos/' . $course['id']); ?>" 
+                                        <a href="<?php echo admin_url('lms/Lms_admin/manage_videos/' . $course['id']); ?>" 
                                            class="btn btn-success btn-block">
                                             <i class="fa fa-video-camera"></i> Manage Videos
                                         </a>
@@ -194,7 +194,7 @@
                         </div>
 
                         <div class="btn-bottom-toolbar text-right">
-                            <a href="<?php echo admin_url('klms/Lms_admin/courses'); ?>" class="btn btn-default">
+                            <a href="<?php echo admin_url('lms/Lms_admin/courses'); ?>" class="btn btn-default">
                                 <i class="fa fa-arrow-left"></i> Back to Courses
                             </a>
                             <button type="submit" class="btn btn-info">

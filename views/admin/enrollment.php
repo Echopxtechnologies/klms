@@ -4,7 +4,7 @@
 <div id="wrapper">
     <div class="content">
 
-<?php echo form_open(admin_url('klms/Lms_admin/enrollment/' . (isset($enrollment) ? $enrollment->id : '')), ['id' => 'enrollment-form']); ?>
+<?php echo form_open(admin_url('lms/Lms_admin/enrollment/' . (isset($enrollment) ? $enrollment->id : '')), ['id' => 'enrollment-form']); ?>
 
 <div class="row">
     <div class="col-md-6">

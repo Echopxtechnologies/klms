@@ -10,11 +10,8 @@
 
             <!-- Header Actions -->
             <div class="_buttons">
-              <a href="<?php echo admin_url('klms/Lms_admin/enrollment'); ?>" class="btn btn-info pull-left">
+              <a href="<?php echo admin_url('lms/Lms_admin/enrollment'); ?>" class="btn btn-info pull-left">
                 <i class="fa fa-plus-circle"></i> New Enrollment
-              </a>
-              <a href="<?php echo admin_url('klms/Lms_admin/export_enrollments'); ?>" class="btn btn-default pull-left mleft5">
-                <i class="fa fa-download"></i> Export
               </a>
               <div class="clearfix"></div>
             </div>
@@ -94,19 +91,19 @@
                         </td>
                         <td class="text-center">
                           <div class="btn-group btn-group-sm">
-                            <a href="<?php echo admin_url('klms/Lms_admin/enrollment/' . $enroll['id']); ?>" 
+                            <a href="<?php echo admin_url('lms/Lms_admin/enrollment/' . $enroll['id']); ?>" 
                                class="btn btn-default btn-icon" 
                                data-toggle="tooltip" 
                                title="View Details">
                               <i class="fa fa-eye"></i>
                             </a>
-                            <a href="<?php echo admin_url('klms/Lms_admin/enrollment/' . $enroll['id']); ?>" 
+                            <a href="<?php echo admin_url('lms/Lms_admin/enrollment/' . $enroll['id']); ?>" 
                                class="btn btn-info btn-icon" 
                                data-toggle="tooltip" 
                                title="Edit">
                               <i class="fa fa-edit"></i>
                             </a>
-                            <a href="<?php echo admin_url('klms/Lms_admin/delete_enrollment/' . $enroll['id']); ?>" 
+                            <a href="<?php echo admin_url('lms/Lms_admin/delete_enrollment/' . $enroll['id']); ?>" 
                                class="btn btn-danger btn-icon _delete" 
                                data-toggle="tooltip" 
                                title="Delete">
@@ -124,7 +121,7 @@
                 <i class="fa fa-graduation-cap" style="font-size: 80px; color: #ddd;"></i>
                 <h3 class="text-muted">No enrollments found</h3>
                 <p class="text-muted">Add your first enrollment to start tracking course progress.</p>
-                <a href="<?php echo admin_url('klms/Lms_admin/enrollment'); ?>" class="btn btn-info btn-lg mtop20">
+                <a href="<?php echo admin_url('lms/Lms_admin/enrollment'); ?>" class="btn btn-info btn-lg mtop20">
                   <i class="fa fa-plus"></i> Add Enrollment
                 </a>
               </div>
@@ -308,7 +305,7 @@ $(document).ready(function() {
 // Delete enrollment function
 function deleteEnrollment(id) {
     if (confirm('Are you sure you want to delete this enrollment? This action cannot be undone.')) {
-        window.location.href = admin_url + 'klms/Lms_admin/delete_enrollment/' + id;
+        window.location.href = admin_url + 'lms/Lms_admin/delete_enrollment/' + id;
     }
 }
 </script>

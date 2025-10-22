@@ -8,7 +8,7 @@
                 <div class="panel_s">
                     <div class="panel-body">
                         <div class="_buttons">
-                            <a href="<?php echo admin_url('klms/Lms_admin/add_course'); ?>" class="btn btn-info pull-left">
+                            <a href="<?php echo admin_url('lms/Lms_admin/add_course'); ?>" class="btn btn-info pull-left">
                                 <i class="fa fa-plus-circle"></i> Add New Course
                             </a>
                             <div class="clearfix"></div>
@@ -22,7 +22,7 @@
                                 <?php foreach($courses as $course) { ?>
                                 <div class="col-md-4 col-sm-6">
                                     <div class="panel panel-default course-card clickable-card" 
-                                         onclick="window.location.href='<?php echo admin_url('klms/Lms_admin/manage_videos/' . $course['id']); ?>'">
+                                         onclick="window.location.href='<?php echo admin_url('lms/Lms_admin/manage_videos/' . $course['id']); ?>'">
                                         
                                         <!-- Cover Image Section -->
                                         <div class="course-image-container">
@@ -55,7 +55,7 @@
                                                 </small>
                                             </div>
                                             <div class="course-actions">
-                                                <a href="<?php echo admin_url('klms/Lms_admin/edit_course/' . $course['id']); ?>" 
+                                                <a href="<?php echo admin_url('lms/Lms_admin/edit_course/' . $course['id']); ?>" 
                                                 class="course-edit-fab" 
                                                 onclick="event.stopPropagation();" 
                                                 title="Edit Course">
@@ -72,7 +72,7 @@
                                         <div class="panel-body">
                                             <h4>No courses found</h4>
                                             <p>Get started by adding your first course!</p>
-                                            <a href="<?php echo admin_url('klms/Lms_admin/add_course'); ?>" class="btn btn-info">
+                                            <a href="<?php echo admin_url('lms/Lms_admin/add_course'); ?>" class="btn btn-info">
                                                 <i class="fa fa-plus"></i> Add New Course
                                             </a>
                                         </div>

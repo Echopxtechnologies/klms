@@ -15,9 +15,9 @@ class Lms_users extends ClientsController
         // Load dependencies
         $this->load->model('elearning_admin_model');
         $this->load->model('elearning_user_model');
-        $this->load->language('klms', 'english');
+        $this->load->language('lms', 'english');
         
-        $this->module_base_url = 'klms/Lms_users';
+        $this->module_base_url = 'lms/Lms_users';
         
         // ✅ CRITICAL: Disable CSRF for payment callback methods
         $csrf_exempt_methods = [
