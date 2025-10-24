@@ -92,6 +92,51 @@ hooks()->add_action('app_customers_head', function () {
         rightNav.prepend(li);
       });
     </script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    var rightNav = document.querySelector(".customers-top-navbar .navbar-right, .header .navbar-right");
+    if (!rightNav) return;
+
+    // ✅ Add Get Courses button (visible for guest + logged-in)
+    if (!document.querySelector(".customers-nav-item-lms-get-courses")) {
+
+        var liCourses = document.createElement("li");
+        liCourses.className = "customers-nav-item-lms-get-courses";
+
+        var aCourses = document.createElement("a");
+        aCourses.href = "https://developer.erpblr.in/lms/lms_users";
+        aCourses.textContent = "Get Courses";
+        aCourses.className = "btn btn-outline-primary lms-get-courses-btn";
+        aCourses.style.marginRight = "12px";
+
+        liCourses.appendChild(aCourses);
+
+        // ✅ Add BEFORE login/profile icon (prepend to right area)
+        rightNav.prepend(liCourses);
+    }
+});
+</script>
+
+<style>
+/* ✅ Get Courses Button Styling */
+.lms-get-courses-btn {
+    border-radius: 6px;
+    padding: 7px 15px;
+    font-weight: 500;
+    border: 1px solid #0d6efd;
+    background-color: transparent;
+    color: #0d6efd !important;
+    transition: all 0.3s ease;
+}
+
+.lms-get-courses-btn:hover {
+    background-color: #084298; /* darker hover */
+    border-color: #084298;
+    color: #000000ff !important;
+}
+</style>
+
+
     ';
 });
 
@@ -124,12 +169,31 @@ function lms_module_activate()
 }
 
 function lms_module_deactivate() {}
-
 function lms_module_uninstall()
 {
-    require_once __DIR__ . '/uninstall.php';
+    // Load uninstall script
+    $uninstall_file = __DIR__ . '/uninstall.php';
+    
+    if (!file_exists($uninstall_file)) {
+        log_activity('LMS Module: uninstall.php not found');
+        return false;
+    }
+    
+    require_once $uninstall_file;
+    
     if (function_exists('lms_uninstall_run')) {
-        lms_uninstall_run();
+        $result = lms_uninstall_run();
+        
+        if ($result === false) {
+            set_alert('danger', 'Failed to uninstall LMS module. Check activity log for details.');
+        } else {
+            set_alert('success', 'LMS Module uninstalled successfully. All data removed.');
+        }
+        
+        return $result;
+    } else {
+        log_activity('LMS Module: lms_uninstall_run() function not found');
+        return false;
     }
 }
 
