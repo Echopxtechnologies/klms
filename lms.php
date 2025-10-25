@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
         liCourses.className = "customers-nav-item-lms-get-courses";
 
         var aCourses = document.createElement("a");
-        aCourses.href = "https://developer.erpblr.in/lms/lms_users";
+        aCourses.href = "https://kilms.erpblr.in/lms/lms_users";
         aCourses.textContent = "Get Courses";
         aCourses.className = "btn btn-outline-primary lms-get-courses-btn";
         aCourses.style.marginRight = "12px";

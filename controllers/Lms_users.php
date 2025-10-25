@@ -371,14 +371,70 @@ public function purchase($course_id = null)
         return;
     }
 
-    // ✅ 9. PAID COURSE: Verify client account exists
-    $client_id = $contact->userid;
+    // ✅ 9. PAID COURSE: Verify/Create client account
+$client_id = $contact->userid;
+
+// If contact has no client, create one automatically
+if (!$client_id || $client_id <= 0) {
+    log_activity('Auto-creating client for contact - Contact ID: ' . $contact_id);
     
-    if (!$client_id || $client_id <= 0) {
-        set_alert('danger', 'No client account found. Please contact support.');
+    $this->load->model('clients_model');
+    
+    // Prepare client data
+    $client_data = [
+        'company'       => $contact->firstname . ' ' . $contact->lastname,
+        'phonenumber'   => $contact->phonenumber ?? '',
+        'country'       => $contact->country ?? get_option('customer_default_country'),
+        'city'          => $contact->city ?? '',
+        'address'       => $contact->address ?? '',
+        'zip'           => $contact->zip ?? '',
+        'active'        => 1,
+        'default_language' => get_option('active_language'),
+        'default_currency' => get_base_currency()->id,
+    ];
+    
+    // Create new client
+    $new_client_id = $this->clients_model->add($client_data);
+    
+    if (!$new_client_id) {
+        log_activity('Failed to create client for contact - Contact ID: ' . $contact_id);
+        set_alert('danger', 'Failed to create account. Please contact support.');
         redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
         return;
     }
+    
+    // Link contact to new client
+    $this->db->where('id', $contact_id);
+    $this->db->update(db_prefix() . 'contacts', [
+        'userid' => $new_client_id,
+        'is_primary' => 1
+    ]);
+    
+    // Set permissions for the contact
+    $this->db->insert(db_prefix() . 'contact_permissions', [
+        'permission_id' => 1, // View invoices
+        'userid' => $contact_id
+    ]);
+    
+    $this->db->insert(db_prefix() . 'contact_permissions', [
+        'permission_id' => 2, // View estimates
+        'userid' => $contact_id
+    ]);
+    
+    $client_id = $new_client_id;
+    
+    log_activity('Client auto-created - Client ID: ' . $new_client_id . ' - Contact ID: ' . $contact_id);
+}
+
+// Verify client exists
+$this->load->model('clients_model');
+$client = $this->clients_model->get($client_id);
+
+if (!$client) {
+    set_alert('danger', 'Client account error. Please contact support.');
+    redirect(site_url($this->module_base_url . '/view_course/' . $course_id));
+    return;
+}
 
     // ✅ 10. Check for existing unpaid invoice
     $this->load->model('invoices_model');
@@ -630,7 +686,7 @@ private function finalize_enrollment($invoice_id, $course_id, $contact_id, $paym
         // ✅ Log success
         log_activity('LMS Enrollment Created - Transaction: ' . $payment_id . ' - Invoice: ' . $invoice_id . ' - Course: ' . $course_id . ' - Enrollment: ' . $enrollment_id);
 
-        set_alert('success', 'Payment successful! You are now enrolled in the course. Transaction ID: ' . $payment_id);
+        set_alert('success', 'Payment successful! You are now enrolled in the course.');
         redirect(site_url($this->module_base_url . '/course_videos/' . $course_id));
 
     } catch (Exception $e) {
