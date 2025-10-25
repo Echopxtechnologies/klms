@@ -47,6 +47,7 @@ hooks()->add_action('app_customers_head', function () {
 // Add "Dashboard" nav item (only after login; not on login page)
 hooks()->add_action('app_customers_head', function () {
     $dashboardUrl = site_url('lms/Lms_users/dashboard');
+    $getCoursesUrl = site_url('lms/lms_users');
     echo '
     <style>
       /* Dashboard Button Styling */
@@ -104,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
         liCourses.className = "customers-nav-item-lms-get-courses";
 
         var aCourses = document.createElement("a");
-        aCourses.href = "https://kilms.erpblr.in/lms/lms_users";
+        aCourses.href = "'. $getCoursesUrl. '";
         aCourses.textContent = "Get Courses";
         aCourses.className = "btn btn-outline-primary lms-get-courses-btn";
         aCourses.style.marginRight = "12px";
